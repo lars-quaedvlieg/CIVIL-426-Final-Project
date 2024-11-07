@@ -1,0 +1,32 @@
+# Data configuration
+data:
+  train_file: "data/processed_train.csv"
+  eval_file: "data/processed_eval.csv"
+  test_file: "data/processed_test.csv"
+  operating_mode_cols: [ "equilibrium_turbine_mode", "equilibrium_pump_mode" ]
+  input_feature_cols: [ "plant_tmp", "ext_tmp", "valve_opening" ]
+  control_value_cols: [ "tot_activepower" ]
+  padding_value: 0.0
+
+# Model configuration
+model:
+  context_length: 10
+  embedding_dim: 16
+  state_dim: 64
+  num_s5_layers: 3
+  s5_dropout: 0.2
+  fc_hidden_dims: [ 64, 32 ]
+  fc_dropout: 0.2
+
+# Training configuration
+training:
+  batch_size: 32
+  learning_rate: 0.001
+  num_epochs: 20
+  checkpoint_path: "checkpoints/causal_model_checkpoint.pth"
+
+# Logging configuration
+logging:
+  use_wandb: false
+  project_name: "alpiq_data_challenge"
+  run_name: "train_causal_model"
