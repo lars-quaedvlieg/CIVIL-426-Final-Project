@@ -1,11 +1,16 @@
+# Hydra settings
+hydra:
+  job:
+    chdir: false
+
 # Data configuration
 data:
-  train_file: "data/processed_train.csv"
-  eval_file: "data/processed_eval.csv"
-  test_file: "data/processed_test.csv"
-  operating_mode_cols: [ "equilibrium_turbine_mode", "equilibrium_pump_mode" ]
-  input_feature_cols: [ "plant_tmp", "ext_tmp", "valve_opening" ]
-  control_value_cols: [ "tot_activepower" ]
+  train_file: "data/processed/processed_train_VG4.csv"
+  eval_file:
+  num_operating_modes: 5
+  input_feature_cols: [ "plant_tmp", "ext_tmp", "valve_opening", "refri_bath_level", "aspi_bath_level", "canal_level", "canal_tmp" ]
+  current_value_cols: [ "tot_activepower" ]  # These are the y_cur columns
+  next_value_cols: [ "tot_activepower" ]     # These are the y_next columns
   padding_value: 0.0
 
 # Model configuration

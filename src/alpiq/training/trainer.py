@@ -14,8 +14,10 @@ class Trainer:
             optimizer: Optimizer,
             criterion: Callable,
             train_loader: DataLoader,
-            eval_loader: DataLoader,
+            eval_loader: Optional[DataLoader] = None,
             device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu"),
+            model_save_freq_epochs = 1,
+            batch_loss_log_freq = 10,
     ):
         """
         Trainer for the CausalModel.
@@ -34,6 +36,8 @@ class Trainer:
         self.train_loader = train_loader
         self.eval_loader = eval_loader
         self.device = device
+        self.model_save_freq_epochs = model_save_freq_epochs
+        self.batch_loss_log_freq = batch_loss_log_freq
 
     def train(self, num_epochs: int = 10, checkpoint_path: Optional[str] = None):
         """
@@ -43,25 +47,34 @@ class Trainer:
             num_epochs (int): Number of epochs for training.
             checkpoint_path (Optional[str]): Path to save model checkpoints.
         """
-        best_eval_loss = float("inf")
+        best_loss = float("inf")
+        do_eval = self.eval_loader is not None
 
         for epoch in range(num_epochs):
             train_loss = self._train_one_epoch(epoch)
-            eval_loss = self._evaluate(self.eval_loader)
+            if do_eval:
+                eval_loss = self._evaluate(self.eval_loader)
 
             # Log to WandB if active
             if wandb.run is not None:
-                wandb.log({"epoch": epoch + 1, "train_loss": train_loss, "eval_loss": eval_loss})
+                metrics_dict = {"epoch": epoch + 1, "train_loss": train_loss}
+                if do_eval:
+                    metrics_dict["eval_loss"] = eval_loss
+                wandb.log(metrics_dict)
 
-            print(f"Epoch [{epoch + 1}/{num_epochs}], Train Loss: {train_loss:.4f}, Eval Loss: {eval_loss:.4f}")
+            print_str = f"Epoch [{epoch + 1}/{num_epochs}], Train Loss: {train_loss:.4f}"
+            if do_eval:
+                print_str += f", Eval Loss: {eval_loss:.4f}"
+            print(print_str)
 
             # Save the model checkpoint if evaluation loss improves
-            if eval_loss < best_eval_loss:
-                best_eval_loss = eval_loss
+            cur_loss = train_loss if not do_eval else eval_loss
+            if cur_loss < best_loss or epoch % self.model_save_freq_epochs == 0:
+                best_loss = cur_loss
                 if checkpoint_path:
-                    self._save_checkpoint(epoch, best_eval_loss, checkpoint_path)
-                    if wandb.run is not None:
-                        wandb.log({"best_eval_loss": best_eval_loss})
+                    self._save_checkpoint(epoch, best_loss, checkpoint_path)
+                    if do_eval and wandb.run is not None:
+                        wandb.log({"best_eval_loss": best_loss})
 
     def _train_one_epoch(self, epoch: int) -> float:
         """
@@ -76,11 +89,14 @@ class Trainer:
         self.model.train()
         running_loss = 0.0
 
-        for batch_idx, (op_x, input_signals, targets) in enumerate(self.train_loader):
-            op_x, input_signals, targets = op_x.to(self.device), input_signals.to(self.device), targets.to(self.device)
+        for batch_idx, batch in enumerate(self.train_loader):
+            op_x = batch["operating_mode"].to(self.device)
+            input_signals = batch["input_sequence"].to(self.device)
+            cur_control_values = batch["current_values"].to(self.device)
+            targets = batch["next_values"].to(self.device)
 
             # Forward pass
-            outputs = self.model(op_x, input_signals)
+            outputs = self.model(op_x, input_signals, cur_control_values)
             loss = self.criterion(outputs, targets)
 
             # Backward pass and optimization
@@ -94,7 +110,7 @@ class Trainer:
             if wandb.run is not None and batch_idx % 10 == 0:
                 wandb.log({"batch_loss": loss.item()})
 
-            if batch_idx % 10 == 0:
+            if batch_idx % self.batch_loss_log_freq == 0:
                 print(
                     f"Train Epoch [{epoch + 1}], Batch [{batch_idx}/{len(self.train_loader)}], Loss: {loss.item():.4f}")
 
@@ -115,12 +131,14 @@ class Trainer:
         running_loss = 0.0
 
         with torch.no_grad():
-            for op_x, input_signals, targets in data_loader:
-                op_x, input_signals, targets = op_x.to(self.device), input_signals.to(self.device), targets.to(
-                    self.device)
+            for batch in data_loader:
+                op_x = batch["operating_mode"].to(self.device)
+                input_signals = batch["input_sequence"].to(self.device)
+                cur_control_values = batch["current_values"].to(self.device)
+                targets = batch["next_values"].to(self.device)
 
                 # Forward pass
-                outputs = self.model(op_x, input_signals)
+                outputs = self.model(op_x, input_signals, cur_control_values)
                 loss = self.criterion(outputs, targets)
 
                 running_loss += loss.item()
