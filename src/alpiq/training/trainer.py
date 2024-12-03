@@ -1,5 +1,6 @@
+import os
 from typing import Callable, Optional
-
+from tqdm import tqdm
 import torch
 import torch.nn as nn
 import wandb
@@ -16,11 +17,12 @@ class Trainer:
             train_loader: DataLoader,
             eval_loader: Optional[DataLoader] = None,
             device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu"),
-            model_save_freq_epochs = 1,
-            batch_loss_log_freq = 10,
+            eval_freq_steps: int = 1000,
+            save_freq_steps: int = 1000,
+            batch_loss_log_freq: int = 10,
     ):
         """
-        Trainer for the CausalModel.
+        Trainer for the CausalModel with step-based training.
 
         Args:
             model (nn.Module): The model to train.
@@ -29,6 +31,9 @@ class Trainer:
             train_loader (DataLoader): DataLoader for the training set.
             eval_loader (DataLoader): DataLoader for the validation set.
             device (torch.device): Device to run training on (CPU or GPU).
+            eval_freq_steps (int): Frequency of steps to evaluate the model.
+            save_freq_steps (int): Frequency of steps to save the model checkpoint.
+            batch_loss_log_freq (int): Frequency of steps to log batch loss to WandB.
         """
         self.model = model.to(device)
         self.optimizer = optimizer
@@ -36,60 +41,31 @@ class Trainer:
         self.train_loader = train_loader
         self.eval_loader = eval_loader
         self.device = device
-        self.model_save_freq_epochs = model_save_freq_epochs
+        self.eval_freq_steps = eval_freq_steps
+        self.save_freq_steps = save_freq_steps
         self.batch_loss_log_freq = batch_loss_log_freq
+        self.global_step = 0
 
-    def train(self, num_epochs: int = 10, checkpoint_path: Optional[str] = None):
+    def train(self, num_steps: int, checkpoint_folder_path: Optional[str] = None):
         """
-        Runs the full training loop for the specified number of epochs.
+        Runs the training loop for the specified number of steps.
 
         Args:
-            num_epochs (int): Number of epochs for training.
-            checkpoint_path (Optional[str]): Path to save model checkpoints.
+            num_steps (int): Number of gradient steps for training.
+            checkpoint_folder_path (Optional[str]): Path to save model checkpoints folder.
         """
         best_loss = float("inf")
-        do_eval = self.eval_loader is not None
+        train_iterator = iter(self.train_loader)
+        pbar = tqdm(total=num_steps, desc="Training Progress")
 
-        for epoch in range(num_epochs):
-            train_loss = self._train_one_epoch(epoch)
-            if do_eval:
-                eval_loss = self._evaluate(self.eval_loader)
-
-            # Log to WandB if active
-            if wandb.run is not None:
-                metrics_dict = {"epoch": epoch + 1, "train_loss": train_loss}
-                if do_eval:
-                    metrics_dict["eval_loss"] = eval_loss
-                wandb.log(metrics_dict)
-
-            print_str = f"Epoch [{epoch + 1}/{num_epochs}], Train Loss: {train_loss:.4f}"
-            if do_eval:
-                print_str += f", Eval Loss: {eval_loss:.4f}"
-            print(print_str)
-
-            # Save the model checkpoint if evaluation loss improves
-            cur_loss = train_loss if not do_eval else eval_loss
-            if cur_loss < best_loss or epoch % self.model_save_freq_epochs == 0:
-                best_loss = cur_loss
-                if checkpoint_path:
-                    self._save_checkpoint(epoch, best_loss, checkpoint_path)
-                    if do_eval and wandb.run is not None:
-                        wandb.log({"best_eval_loss": best_loss})
-
-    def _train_one_epoch(self, epoch: int) -> float:
-        """
-        Trains the model for one epoch.
-
-        Args:
-            epoch (int): Current epoch number.
-
-        Returns:
-            float: Average training loss for the epoch.
-        """
         self.model.train()
-        running_loss = 0.0
+        while self.global_step < num_steps:
+            try:
+                batch = next(train_iterator)
+            except StopIteration:
+                train_iterator = iter(self.train_loader)
+                batch = next(train_iterator)
 
-        for batch_idx, batch in enumerate(self.train_loader):
             op_x = batch["operating_mode"].to(self.device)
             input_signals = batch["input_sequence"].to(self.device)
             cur_control_values = batch["current_values"].to(self.device)
@@ -104,34 +80,46 @@ class Trainer:
             loss.backward()
             self.optimizer.step()
 
-            running_loss += loss.item()
+            # Log batch loss to WandB every `batch_loss_log_freq` steps
+            if wandb.run is not None and self.global_step % self.batch_loss_log_freq == 0:
+                wandb.log({"batch_loss": loss.item(), "step": self.global_step})
 
-            # Log batch loss to WandB every 10 batches
-            if wandb.run is not None and batch_idx % 10 == 0:
-                wandb.log({"batch_loss": loss.item()})
+            # Evaluate model every `eval_freq_steps` steps
+            if self.eval_loader is not None and self.global_step % self.eval_freq_steps == 0:
+                eval_loss = self._evaluate()
+                self.model.train()
+                if wandb.run is not None:
+                    wandb.log({"eval_loss": eval_loss, "step": self.global_step})
+                print(f"Step [{self.global_step}], Eval Loss: {eval_loss:.4f}")
 
-            if batch_idx % self.batch_loss_log_freq == 0:
-                print(
-                    f"Train Epoch [{epoch + 1}], Batch [{batch_idx}/{len(self.train_loader)}], Loss: {loss.item():.4f}")
+            # Save checkpoint every `save_freq_steps` steps or if it’s the best eval loss
+            cur_loss = loss.item() if self.eval_loader is None else eval_loss
+            if checkpoint_folder_path is not None and self.global_step % self.save_freq_steps == 0:
+                ckpt_path = os.path.join(checkpoint_folder_path, f"causal-ckpt-{self.global_step}.pth")
+                self._save_checkpoint(self.global_step, cur_loss, ckpt_path)
+            if checkpoint_folder_path is not None and self.eval_loader and cur_loss < best_loss:
+                best_loss = cur_loss
+                ckpt_path = os.path.join(checkpoint_folder_path, f"causal-model-best.pth")
+                self._save_checkpoint(self.global_step, best_loss, ckpt_path)
 
-        avg_loss = running_loss / len(self.train_loader)
-        return avg_loss
+            # Update progress bar
+            pbar.set_description(f"Step [{self.global_step}], Train Loss: {loss.item():.4f}")
+            pbar.update(1)
+            self.global_step += 1
 
-    def _evaluate(self, data_loader: DataLoader) -> float:
+        pbar.close()
+
+    def _evaluate(self) -> float:
         """
-        Evaluates the model on a given dataset.
-
-        Args:
-            data_loader (DataLoader): DataLoader for the dataset to evaluate (validation or test).
+        Evaluates the model on the evaluation dataset.
 
         Returns:
-            float: Average loss on the dataset.
+            float: Average loss on the evaluation set.
         """
         self.model.eval()
         running_loss = 0.0
-
         with torch.no_grad():
-            for batch in data_loader:
+            for batch in self.eval_loader:
                 op_x = batch["operating_mode"].to(self.device)
                 input_signals = batch["input_sequence"].to(self.device)
                 cur_control_values = batch["current_values"].to(self.device)
@@ -140,29 +128,28 @@ class Trainer:
                 # Forward pass
                 outputs = self.model(op_x, input_signals, cur_control_values)
                 loss = self.criterion(outputs, targets)
-
                 running_loss += loss.item()
 
-        avg_loss = running_loss / len(data_loader)
+        avg_loss = running_loss / len(self.eval_loader)
         return avg_loss
 
-    def _save_checkpoint(self, epoch: int, loss: float, checkpoint_path: str):
+    def _save_checkpoint(self, step: int, loss: float, checkpoint_path: str):
         """
         Saves the model checkpoint.
 
         Args:
-            epoch (int): Epoch number.
+            step (int): Current training step.
             loss (float): Loss value to store with the checkpoint.
             checkpoint_path (str): Path to save the checkpoint.
         """
         checkpoint = {
-            'epoch': epoch,
+            'step': step,
             'model_state_dict': self.model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
             'loss': loss
         }
         torch.save(checkpoint, checkpoint_path)
-        print(f"Checkpoint saved at epoch {epoch + 1} with loss: {loss:.4f}")
+        print(f"Checkpoint saved at step {step} with loss: {loss:.4f}")
 
     def test(self, test_loader: DataLoader):
         """

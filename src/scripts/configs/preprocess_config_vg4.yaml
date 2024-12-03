@@ -14,23 +14,23 @@ data:
   resample_interval: "30s"    # Resample interval, e.g., "1T" for one minute
 
   # Column selection and normalization settings
-  continuous_columns: ["tot_activepower", "plant_tmp", "ext_tmp", "water_primary_cold_tmp", "water_primary_hot_tmp",
-                       "valve_opening", "refri_bath_level", "aspi_bath_level", "canal_level", "canal_tmp",
-                       "water_primary_filter_out_pressure", "water_primary_filter_in_pressure", "lake_tmp",
-                       "coupler_position", "tot_reactivepower", "injector12_pressure", "injector34_pressure",
-                       "pump_rotspeed", "injector_01_opening", "injector_02_opening", "injector_03_opening",
-                       "injector_04_opening", "turbine_rotspeed", "exc_freq", "exc_current", "exc_voltage",
-                       "powerfactor", "elec_freq", "ph01_current", "ph02_current", "ph03_current", "ph01_voltage",
-                       "ph12_voltage", "ph02_voltage", "ph23_voltage", "ph03_voltage", "ph31_voltage",
-                       "air_circ_hot_tmp", "air_circ_cold_01_tmp", "air_circ_cold_02_tmp", "stat_magn_01_tmp",
-                       "stat_magn_02_tmp", "stat_coil_ph01_01_tmp", "stat_coil_ph01_02_tmp", "stat_coil_ph02_01_tmp",
-                       "stat_coil_ph03_01_tmp", "stat_coil_ph03_02_tmp", "water_circ_hot_01_tmp", "water_circ_hot_02_tmp",
-                       "water_circ_cold_tmp"]  # Continuous columns to normalize
+  continuous_columns: [ "tot_activepower", "plant_tmp", "ext_tmp", "water_primary_cold_tmp", "water_primary_hot_tmp",
+                        "valve_opening", "refri_bath_level", "aspi_bath_level", "canal_level", "canal_tmp",
+                        "water_primary_filter_out_pressure", "water_primary_filter_in_pressure", "lake_tmp",
+                        "coupler_position", "tot_reactivepower", "injector12_pressure", "injector34_pressure",
+                        "pump_rotspeed", "injector_01_opening", "injector_02_opening", "injector_03_opening",
+                        "injector_04_opening", "turbine_rotspeed", "exc_freq", "exc_current", "exc_voltage",
+                        "powerfactor", "elec_freq", "ph01_current", "ph02_current", "ph03_current", "ph01_voltage",
+                        "ph12_voltage", "ph02_voltage", "ph23_voltage", "ph03_voltage", "ph31_voltage",
+                        "air_circ_hot_tmp", "air_circ_cold_01_tmp", "air_circ_cold_02_tmp", "stat_magn_01_tmp",
+                        "stat_magn_02_tmp", "stat_coil_ph01_01_tmp", "stat_coil_ph01_02_tmp", "stat_coil_ph02_01_tmp",
+                        "stat_coil_ph03_01_tmp", "stat_coil_ph03_02_tmp", "water_circ_hot_01_tmp", "water_circ_hot_02_tmp",
+                        "water_circ_cold_tmp" ]  # Continuous columns to normalize
 
   # Feature and predictor columns
-  operating_mode_cols: ["dyn_only_on", "equilibrium_turbine_mode", "equilibrium_pump_mode", "equilibrium_short_circuit_mode"]
-  input_feature_cols: ["plant_tmp", "ext_tmp", "valve_opening", "refri_bath_level", "aspi_bath_level", "canal_level", "canal_tmp"]
-  control_value_cols: ["tot_activepower"]
+  operating_mode_cols: [ "dyn_only_on", "equilibrium_turbine_mode", "equilibrium_pump_mode", "equilibrium_short_circuit_mode" ]
+  input_feature_cols: [ 'tot_activepower', 'plant_tmp', 'ext_tmp', 'water_primary_cold_tmp', 'refri_bath_level', 'aspi_bath_level', 'coupler_position', 'tot_reactivepower', 'injector12_pressure', 'injector34_pressure', 'injector_01_opening', 'turbine_rotspeed', 'air_circ_hot_tmp', 'air_circ_cold_01_tmp', 'water_circ_hot_02_tmp' ]
+  control_value_cols: [ "exc_freq", "exc_current", "exc_voltage", "elec_freq", "air_circ_hot_tmp", "water_circ_cold_tmp" ]
 
   # Output paths
   output_dir: "data/processed"

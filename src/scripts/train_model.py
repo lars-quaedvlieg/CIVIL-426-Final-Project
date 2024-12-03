@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 import hydra
 import torch
@@ -12,7 +13,7 @@ from alpiq.model.causal_model import CausalModel
 from alpiq.training.trainer import Trainer
 
 
-@hydra.main(config_path="configs", config_name="train_model")
+@hydra.main(config_path="configs", config_name="train_model_VG4")
 def main(cfg: DictConfig):
     print(OmegaConf.to_yaml(cfg))
 
@@ -77,7 +78,8 @@ def main(cfg: DictConfig):
     )
 
     # Train the model
-    trainer.train(num_epochs=cfg.training.num_epochs, checkpoint_path=cfg.training.checkpoint_path)
+    os.makedirs(cfg.training.checkpoint_folder, exist_ok=True)
+    trainer.train(num_steps=cfg.training.num_gradient_steps, checkpoint_folder_path=cfg.training.checkpoint_folder)
 
     # End WandB run
     if cfg.logging.use_wandb:

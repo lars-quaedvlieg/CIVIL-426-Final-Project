@@ -48,7 +48,7 @@ def encode_operating_mode(row: pd.Series) -> int:
         return 0
 
 
-@hydra.main(config_path="configs", config_name="preprocess_config_vg4")
+@hydra.main(config_path="configs", config_name="preprocess_config_vg6")
 def main(cfg: DictConfig):
     print(OmegaConf.to_yaml(cfg))
 
@@ -105,6 +105,8 @@ def main(cfg: DictConfig):
         # Prepare the DataFrame with X, y_cur, and y_next columns
         processed_data = processed_data[feature_columns + [f"y_cur_{col}" for col in y_columns] + [f"y_next_{col}" for col in y_columns]]
         processed_data.columns = multi_index_columns
+
+        print(processed_data.columns)
 
         # Split data if specified (e.g., split train data into train and eval)
         if split_name == "train" and cfg.data.split_train_eval:
