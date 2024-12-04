@@ -2,20 +2,19 @@ import os
 from pathlib import Path
 import hydra
 import torch
-import torch.nn as nn
-import torch.optim as optim
 import wandb
 from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
 
 from alpiq.data.sequence_dataset import SequenceDataset
 from alpiq.model.causal_model import CausalModel
-from alpiq.training.trainer import Trainer
+from alpiq.evaluation.anomaly_detection import compute_score, windowed_threshold_batch
 
 
 @hydra.main(config_path="configs", config_name="test_model_VG6")
 def main(cfg: DictConfig):
     print(OmegaConf.to_yaml(cfg))
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Initialize WandB if enabled
     if cfg.logging.use_wandb:
@@ -37,8 +36,6 @@ def main(cfg: DictConfig):
 
     # Data loaders
     test_loader = DataLoader(test_dataset, batch_size=cfg.testing.batch_size, shuffle=False)
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Model, optimizer, and loss function
     model = CausalModel(
@@ -63,8 +60,11 @@ def main(cfg: DictConfig):
     # Set the model to evaluation mode
     model.eval()
 
-    outputs_list = []
-    targets_list = []
+    outputs_buffer = []
+    scores_buffer = []
+    targets_buffer = []
+    state_buffer = [0]
+    buffer_size = 1000
 
     with torch.no_grad():
         for batch in test_loader:
@@ -76,9 +76,23 @@ def main(cfg: DictConfig):
             # Forward pass
             outputs = model(op_x, input_signals, cur_control_values)
 
-            # Save Outputs and Targets
-            outputs_list.append(outputs)
-            targets_list.append(targets)
+            # Compute the score
+            scores = compute_score(outputs, targets)
+
+            # Save Outputs Scores and Targets
+            outputs_buffer.extend(outputs.cpu().numpy())
+            scores_buffer.extend(scores.cpu().numpy())
+            targets_buffer.extend(targets.cpu().numpy())
+
+            if len(outputs_buffer) > buffer_size:
+                outputs_buffer = outputs_buffer[-buffer_size:]
+                scores_buffer = scores_buffer[-buffer_size:]
+                targets_buffer = targets_buffer[-buffer_size:]
+
+            # Compute the anomaly state
+            if len(scores_buffer) > cfg.testing.window_size:
+                state_buffer = windowed_threshold_batch(scores_buffer, cfg.testing.threshold, cfg.testing.window_size, state_buffer, cfg.testing.nb_consecutive_anomalies, cfg.testing.batch_size)
+                print(state_buffer)
 
     # End WandB run
     if cfg.logging.use_wandb:

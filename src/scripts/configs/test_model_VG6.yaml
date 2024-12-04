@@ -27,6 +27,9 @@ model:
 testing:
   batch_size: 64
   model_path: "checkpoints_VG6/causal-model-best.pth"
+  threshold: 0.5
+  window_size: 10
+  nb_consecutive_anomalies: 5
 
 # Logging configuration
 logging:
