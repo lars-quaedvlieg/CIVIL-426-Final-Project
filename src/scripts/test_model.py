@@ -52,10 +52,10 @@ def main(cfg: DictConfig):
     ).to(device)
 
     # Load the checkpoint
-    #checkpoint = torch.load(cfg.testing.model_path, map_location=device)
+    checkpoint = torch.load(cfg.testing.model_path, map_location=device)
 
     # Restore the model state
-    #model.load_state_dict(checkpoint['model_state_dict'])
+    model.load_state_dict(checkpoint['model_state_dict'])
 
     # Set the model to evaluation mode
     model.eval()
@@ -64,6 +64,7 @@ def main(cfg: DictConfig):
     scores_buffer = []
     targets_buffer = []
     states_buffer = []
+    anomalies_buffer = []
     buffer_size = 1000
 
     with torch.no_grad():
@@ -92,6 +93,14 @@ def main(cfg: DictConfig):
             # Compute the anomaly state
             if len(scores_buffer) > cfg.testing.window_size:
                 states_buffer = windowed_threshold_batch(scores_buffer, cfg.testing.threshold, cfg.testing.window_size, states_buffer, cfg.testing.nb_consecutive_anomalies, cfg.testing.batch_size)
+
+                # Check if any of the new states are anomalies
+                new_states = [state[-cfg.testing.batch_size:] for state in states_buffer]
+                anomalies_batch = [any([state[t] == 2 for state in new_states]) for t in range(cfg.testing.batch_size)]
+                anomalies_buffer.extend(anomalies_batch)
+
+                if len(anomalies_buffer) > cfg.testing.buffer_size:
+                    anomalies_buffer = anomalies_buffer[-buffer_size:]
 
 
     # End WandB run
