@@ -63,7 +63,7 @@ def main(cfg: DictConfig):
     outputs_buffer = []
     scores_buffer = []
     targets_buffer = []
-    state_buffer = [0]
+    states_buffer = []
     buffer_size = 1000
 
     with torch.no_grad():
@@ -84,15 +84,15 @@ def main(cfg: DictConfig):
             scores_buffer.extend(scores.cpu().numpy())
             targets_buffer.extend(targets.cpu().numpy())
 
-            if len(outputs_buffer) > buffer_size:
+            if len(outputs_buffer) > cfg.testing.buffer_size:
                 outputs_buffer = outputs_buffer[-buffer_size:]
                 scores_buffer = scores_buffer[-buffer_size:]
                 targets_buffer = targets_buffer[-buffer_size:]
 
             # Compute the anomaly state
             if len(scores_buffer) > cfg.testing.window_size:
-                state_buffer = windowed_threshold_batch(scores_buffer, cfg.testing.threshold, cfg.testing.window_size, state_buffer, cfg.testing.nb_consecutive_anomalies, cfg.testing.batch_size)
-                print(state_buffer)
+                states_buffer = windowed_threshold_batch(scores_buffer, cfg.testing.threshold, cfg.testing.window_size, states_buffer, cfg.testing.nb_consecutive_anomalies, cfg.testing.batch_size)
+
 
     # End WandB run
     if cfg.logging.use_wandb:

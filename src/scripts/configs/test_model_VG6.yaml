@@ -30,6 +30,7 @@ testing:
   threshold: 0.5
   window_size: 10
   nb_consecutive_anomalies: 5
+  buffer_size: 1000
 
 # Logging configuration
 logging:

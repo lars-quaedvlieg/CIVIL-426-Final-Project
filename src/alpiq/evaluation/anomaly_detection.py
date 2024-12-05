@@ -40,53 +40,57 @@ def compute_score(pred_data, data, weights=None):
     return result
 
 
-def windowed_threshold_batch(scores_buffer, threshold, window_size, state_buffer, nb_max_consecutive_anomalies, batch_size):
+def windowed_threshold_batch(scores_buffer, threshold, window_size, state_buffer,
+                             nb_max_consecutive_anomalies, batch_size):
     """
-    Computes the state for the last #batch_size data points in scores_buffer
-    using a sliding window mean, and transitions states based on thresholds.
+    Computes anomaly states for each sensor and total score using windowed means.
 
     Args:
-        scores_buffer (np.ndarray): Circular buffer of scores.
+        scores_buffer (np.ndarray): Circular buffer of scores, shape (total_size, num_sensors + 1).
         threshold (float): Threshold for anomaly detection.
         window_size (int): Size of the sliding window.
-        state_buffer (list): Circular buffer of states.
+        state_buffer (list): Circular buffer of states, one for each sensor + total score.
         nb_max_consecutive_anomalies (int): Number of consecutive anomalies before transitioning to state 2.
         batch_size (int): Number of new data points added to scores_buffer in this batch.
 
     Returns:
-        list: Updated state_buffer with new states included.
+        list: Updated state_buffer with new states for each sensor + total score.
     """
-    # Ensure enough data for window computation
-    buffer_size = len(scores_buffer)
-    if buffer_size < window_size:
+    scores_buffer = np.array(scores_buffer)
+    total_size, num_features = np.shape(scores_buffer)  # num_features = num_sensors + 1
+    if total_size < window_size:
         raise ValueError("Not enough data in scores_buffer to compute window.")
 
-    # Start index for new data
-    start_idx = max(0, buffer_size - batch_size)
+    # Ensure state_buffer has the correct structure
+    while len(state_buffer) < num_features:
+        state_buffer.append([])
 
-    for i in range(start_idx, buffer_size):
-        # Only compute if there's enough data for the window
-        if i >= window_size - 1:
-            # Compute the mean for the current window
-            window_mean = np.mean(scores_buffer[i - window_size + 1: i + 1])
+    # Process each sensor (and the total score)
+    for feature_idx in range(num_features):
+        start_idx = max(0, total_size - batch_size)  # Start index for new data
 
-            if window_mean > threshold:
-                count = 0
-                # Count consecutive anomalies in the state buffer
-                while len(state_buffer) > count and state_buffer[-(count + 1)] != 0:
-                    count += 1
+        for i in range(start_idx, total_size):
+            if i >= window_size - 1:
+                # Compute window mean for the current feature
+                window_mean = np.mean(scores_buffer[i - window_size + 1:i + 1, feature_idx])
 
-                if count > nb_max_consecutive_anomalies:
-                    state_buffer.append(2)
+                if window_mean > threshold:
+                    count = 1
+                    while len(state_buffer[feature_idx]) > count and state_buffer[feature_idx][-(count + 1)] != 0:
+                        count += 1
+
+                    if count > nb_max_consecutive_anomalies:
+                        state_buffer[feature_idx].append(2)
+                    else:
+                        state_buffer[feature_idx].append(1)
                 else:
-                    state_buffer.append(1)
+                    state_buffer[feature_idx].append(0)
             else:
-                state_buffer.append(0)
-        else:
-            # Not enough data for the window; append a default state
-            state_buffer.append(0)
+                # Not enough data for the window; append a default state
+                state_buffer[feature_idx].append(0)
 
-    # Keep the state buffer within the maximum buffer size
-    state_buffer = state_buffer[-buffer_size:]
+        # Trim the state buffer for this feature to the maximum allowed size
+        state_buffer[feature_idx] = state_buffer[feature_idx][-total_size:]
 
     return state_buffer
+
