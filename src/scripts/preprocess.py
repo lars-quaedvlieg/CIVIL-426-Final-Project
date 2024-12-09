@@ -21,7 +21,14 @@ def normalize_columns(df: pd.DataFrame, continuous_columns: list) -> pd.DataFram
     """
     scaler = StandardScaler()
     for col in continuous_columns:
-        df[col] = scaler.fit_transform(df[[col]])
+        if col in df.columns:
+            if col=='ground_truth':
+                df[col] = df[[col]]
+            else:            
+                df[col] = scaler.fit_transform(df[[col]])
+        else:
+            df[col] = df[[col]]
+
     return df
 
 
@@ -48,7 +55,7 @@ def encode_operating_mode(row: pd.Series) -> int:
         return 0
 
 
-@hydra.main(config_path="configs", config_name="preprocess_config_vg6")
+@hydra.main(config_path="configs", config_name="preprocess_config_vg5_anom")
 def main(cfg: DictConfig):
     print(OmegaConf.to_yaml(cfg))
 
@@ -58,13 +65,21 @@ def main(cfg: DictConfig):
         unit=cfg.data.unit,
         load_training=cfg.data.load_training,
         load_synthetic=cfg.data.load_synthetic,
+        load_anomaly=cfg.data.load_anomaly
     )
 
     # Process each case (train, eval, test) into separate DataFrames
     for split_name, case_data in raw_data.data_dict.items():
         # Select measurements DataFrame
         processed_data = case_data.measurements.copy()
+        processed_data.head()
         processed_data.index = pd.to_datetime(processed_data.index)
+
+        # Add ground_truth column
+        if "ground_truth_col" in cfg.data and cfg.data.ground_truth_col in case_data.measurements.columns:
+            processed_data["ground_truth"] = case_data.measurements[cfg.data.ground_truth_col]
+        else:
+            processed_data["ground_truth"] = 0  # Default or computed value
 
         # Resample the data to ensure regular intervals
         processed_data = processed_data.resample(cfg.data.resample_interval).asfreq()
@@ -86,6 +101,7 @@ def main(cfg: DictConfig):
         # Create an encoded operating mode column
         processed_data["operating_mode"] = processed_data.apply(encode_operating_mode, axis=1)
 
+
         # Create shifted y_next columns for next-step prediction
         y_columns = cfg.data.control_value_cols
         processed_data[[f"y_cur_{col}" for col in y_columns]] = processed_data[y_columns]
@@ -95,7 +111,7 @@ def main(cfg: DictConfig):
         processed_data.dropna(inplace=True)
 
         # Create a multi-index DataFrame for X, y_cur, and y_next columns
-        feature_columns = cfg.data.input_feature_cols + ["operating_mode"]
+        feature_columns = cfg.data.input_feature_cols + ["operating_mode","ground_truth"]
         multi_index_columns = (
             pd.MultiIndex.from_product([["X"], feature_columns])
             .append(pd.MultiIndex.from_product([["y_cur"], y_columns]))

@@ -5,13 +5,16 @@ import torch
 import wandb
 from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
+from tqdm import tqdm
+
+from sklearn.metrics import roc_auc_score, precision_score, recall_score, f1_score, accuracy_score
 
 from alpiq.data.sequence_dataset import SequenceDataset
 from alpiq.model.causal_model import CausalModel
 from alpiq.evaluation.anomaly_detection import compute_score, windowed_threshold_batch
 
 
-@hydra.main(config_path="configs", config_name="test_model_VG6")
+@hydra.main(config_path="configs", config_name="test_model_VG5_anom")
 def main(cfg: DictConfig):
     print(OmegaConf.to_yaml(cfg))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -31,7 +34,8 @@ def main(cfg: DictConfig):
         input_feature_col_names=cfg.data.input_feature_cols,
         current_value_col_names=cfg.data.current_value_cols,
         next_value_col_names=cfg.data.next_value_cols,
-        padding_value=cfg.data.padding_value
+        padding_value=cfg.data.padding_value,
+        load_GT=cfg.data.load_GT
     )
 
     # Data loaders
@@ -64,11 +68,14 @@ def main(cfg: DictConfig):
     scores_buffer = []
     targets_buffer = []
     states_buffer = []
-    anomalies_buffer = []
-    buffer_size = 1000
+    anomalies_list = []
+    GT_list = []
+    buffer_size = cfg.testing.buffer_size
 
     with torch.no_grad():
-        for batch in test_loader:
+        for batch in tqdm(test_loader):
+            if cfg.data.load_GT:
+                GT_X = batch["ground_truth"]
             op_x = batch["operating_mode"].to(device)
             input_signals = batch["input_sequence"].to(device)
             cur_control_values = batch["current_values"].to(device)
@@ -85,7 +92,7 @@ def main(cfg: DictConfig):
             scores_buffer.extend(scores.cpu().numpy())
             targets_buffer.extend(targets.cpu().numpy())
 
-            if len(outputs_buffer) > cfg.testing.buffer_size:
+            if len(outputs_buffer) > buffer_size:
                 outputs_buffer = outputs_buffer[-buffer_size:]
                 scores_buffer = scores_buffer[-buffer_size:]
                 targets_buffer = targets_buffer[-buffer_size:]
@@ -97,10 +104,23 @@ def main(cfg: DictConfig):
                 # Check if any of the new states are anomalies
                 new_states = [state[-cfg.testing.batch_size:] for state in states_buffer]
                 anomalies_batch = [any([state[t] == 2 for state in new_states]) for t in range(cfg.testing.batch_size)]
-                anomalies_buffer.extend(anomalies_batch)
+                anomalies_list.extend(anomalies_batch)
+                if cfg.data.load_GT:
+                    GT_list.extend(GT_X.cpu().numpy())
 
-                if len(anomalies_buffer) > cfg.testing.buffer_size:
-                    anomalies_buffer = anomalies_buffer[-buffer_size:]
+            if len(GT_list) > 40000:
+                break
+
+    print(f"Anomalies shape: {len(anomalies_list)}")
+    print(f"GT shape: {len(GT_list)}")
+
+    if cfg.data.load_GT:
+        print(f"ROC AUC: {roc_auc_score(GT_list, anomalies_list)}")
+        print(f"Precision: {precision_score(GT_list, anomalies_list)}")
+        print(f"Recall: {recall_score(GT_list, anomalies_list)}")
+        print(f"F1: {f1_score(GT_list, anomalies_list)}")
+        print(f"Accuracy: {accuracy_score(GT_list, anomalies_list)}")
+        
 
 
     # End WandB run
