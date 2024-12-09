@@ -16,6 +16,7 @@ class SequenceDataset(Dataset):
             current_value_col_names: List[str],
             next_value_col_names: List[str],
             padding_value: float = 0.0,
+            load_GT: bool = False,
     ):
         """
         Dataset for hydropower unit data with sequential sampling and padding support.
@@ -41,6 +42,7 @@ class SequenceDataset(Dataset):
         self.current_value_cols = current_value_col_names
         self.next_value_cols = next_value_col_names
         self.padding_value = padding_value
+        self.load_GT = load_GT
 
         # Calculate valid indices where the operating mode is not zero
         # Assumes "operating_mode" is one of the input features under "X"
@@ -79,6 +81,8 @@ class SequenceDataset(Dataset):
         operating_modes = self.data.loc[1+start_idx:end_idx, ("X", "operating_mode")].values
         current_values = self.data.loc[end_idx, ("y_cur", self.current_value_cols)].values
         next_values = self.data.loc[end_idx, ("y_next", self.next_value_cols)].values
+        if self.load_GT:
+            ground_truth = self.data.loc[end_idx, ("X", "ground_truth")]
 
         # Apply padding if the sequence is shorter than the context length
         padding_length = self.context_length - len(input_sequence)
@@ -95,10 +99,17 @@ class SequenceDataset(Dataset):
         operating_modes = torch.tensor(operating_modes, dtype=torch.long)
         current_values = torch.tensor(current_values, dtype=torch.float)
         next_values = torch.tensor(next_values, dtype=torch.float)
+        if self.load_GT:
+            ground_truth = torch.tensor(ground_truth, dtype=torch.float)
 
-        return {
+        output = {
             "operating_mode": operating_modes,
             "input_sequence": input_sequence,
             "current_values": current_values,
             "next_values": next_values,
         }
+
+        if self.load_GT:
+            output["ground_truth"] = ground_truth
+
+        return output
