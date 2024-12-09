@@ -1,0 +1,43 @@
+# Hydra settings
+hydra:
+  job:
+    chdir: false
+
+# Data configuration
+data:
+  test_file: "data/processed/processed_test_VG5.csv"
+  num_operating_modes: 5
+  input_feature_cols: [ 'tot_activepower', 'ext_tmp', 'plant_tmp', 'injector_01_opening', 'tot_current', 'tot_reactivepower', 'turbine_pressure', 'water_primary_pump_01_opening', 'water_primary_pump_02_opening', 'air_circ_cold_01_tmp', 'air_circ_hot_01_tmp', 'neutral_current', 'air_gap_negative_x_position' ]
+  # These are the y_cur columns
+  current_value_cols: [ "exc_current", "exc_voltage", "elec_freq", "water_circ_flow", "water_circ_hot_tmp", "water_circ_cold_tmp" ]  # These are the y_next columns
+  next_value_cols: [ "exc_current", "exc_voltage", "elec_freq", "water_circ_flow", "water_circ_hot_tmp", "water_circ_cold_tmp" ]
+  padding_value: 0.0
+  load_GT: false
+
+# Model configuration
+model:
+  context_length: 60  # 300 / 2 = 150 minutes
+  embedding_dim: 32  #
+  state_dim: 128     # Increased state dimension for S5 backbone to handle richer data
+  num_s5_layers: 4   # Increased number of S5 layers for more complexity
+  s5_dropout: 0.1    # Reduced dropout for S5; too high dropout can impact sequence learning negatively
+  fc_hidden_dims: [ 128, 64, 32 ]  # Larger and deeper FC network to process richer sequences
+  fc_dropout: 0.1   # Reduced FC dropout to preserve signal for complex sequences
+
+# Training configuration
+testing:
+  batch_size: 64
+  model_path: "checkpoints_VG5/causal-ckpt-31900.pth"
+  threshold: 0.5
+  window_size: 10
+  nb_consecutive_anomalies: 5
+  buffer_size: 100
+  results_dir: "results_VG5"
+  results_file: "data_processed_VG5.csv"
+  fig_file: "results_VG5.png"
+
+# Logging configuration
+logging:
+  use_wandb: false
+  project_name: "alpiq_data_challenge"
+  run_name: "train_causal_model_VG5"

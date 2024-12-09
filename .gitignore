@@ -5,6 +5,10 @@ __pycache__/
 
 # Data files
 data
+outputs
+results_VG5
+results_VG6
+results_VG4
 
 # C extensions
 *.so

@@ -5,7 +5,7 @@ hydra:
 
 # Data configuration
 data:
-  test_file: "data/processed/processed_01_type_a_VG5.csv"
+  test_file: "data/processed/processed_02_type_c_VG5.csv"
   num_operating_modes: 5
   input_feature_cols: [ 'tot_activepower', 'ext_tmp', 'plant_tmp', 'injector_01_opening', 'tot_current', 'tot_reactivepower', 'turbine_pressure', 'water_primary_pump_01_opening', 'water_primary_pump_02_opening', 'air_circ_cold_01_tmp', 'air_circ_hot_01_tmp', 'neutral_current', 'air_gap_negative_x_position' ]
   # These are the y_cur columns
@@ -33,11 +33,11 @@ testing:
   nb_consecutive_anomalies: 5
   buffer_size: 100
   results_dir: "results_VG5"
-  results_file: "results_VG5.csv"
-  fig_file: "results_VG5.png"
+  results_file: "data_processed_02_type_c_VG5.csv"
+  fig_file: "fig_processed_02_type_c_VG5.png"
 
 # Logging configuration
 logging:
   use_wandb: false
   project_name: "alpiq_data_challenge"
-  run_name: "train_causal_model_VG6"
+  run_name: "train_causal_model_VG5"
