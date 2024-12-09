@@ -7,7 +7,8 @@ from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from sklearn.metrics import roc_auc_score, precision_score, recall_score, f1_score, accuracy_score
+from sklearn.metrics import roc_auc_score, precision_score, recall_score, f1_score, accuracy_score, roc_curve
+import matplotlib.pyplot as plt
 
 from alpiq.data.sequence_dataset import SequenceDataset
 from alpiq.model.causal_model import CausalModel
@@ -68,8 +69,13 @@ def main(cfg: DictConfig):
     scores_buffer = []
     targets_buffer = []
     states_buffer = []
+
+    outputs_list = []
+    scores_list = []
+    targets_list = []
     anomalies_list = []
     GT_list = []
+
     buffer_size = cfg.testing.buffer_size
 
     with torch.no_grad():
@@ -91,6 +97,9 @@ def main(cfg: DictConfig):
             outputs_buffer.extend(outputs.cpu().numpy())
             scores_buffer.extend(scores.cpu().numpy())
             targets_buffer.extend(targets.cpu().numpy())
+            outputs_list.extend(outputs.cpu().numpy())
+            scores_list.extend(scores.cpu().numpy())
+            targets_list.extend(targets.cpu().numpy())
 
             if len(outputs_buffer) > buffer_size:
                 outputs_buffer = outputs_buffer[-buffer_size:]
@@ -108,19 +117,61 @@ def main(cfg: DictConfig):
                 if cfg.data.load_GT:
                     GT_list.extend(GT_X.cpu().numpy())
 
-            if len(GT_list) > 40000:
+            if len(GT_list) > 10000:
                 break
+
+    # Save the results to a file
+    if not os.path.exists(cfg.testing.results_dir):
+        os.makedirs(cfg.testing.results_dir)
+
+    # Save the outputs, scores, targets, anomalies, and GT to a file
+    results_file = os.path.join(cfg.testing.results_dir, cfg.testing.results_file)
+    with open(results_file, 'w') as f:
+        f.write("Outputs, Scores, Targets, Anomalies, GT\n")
+        for i in range(len(outputs_list)):
+            f.write(f"{outputs_list[i]}, {scores_list[i]}, {targets_list[i]}, {anomalies_list[i]}, {GT_list[i]}\n")
 
     print(f"Anomalies shape: {len(anomalies_list)}")
     print(f"GT shape: {len(GT_list)}")
 
     if cfg.data.load_GT:
+        # Create a figure with n+2 subplots, n being the number of cols in cfg.data.next_value_cols,
+        # so in each plot you will the output and the target and the score for each of the cols,
+        # in the n+1 plot you will see the total score
+        # and in the last plot you will see the anomalies and the GT
+        n = len(cfg.data.next_value_cols)
+        fig, axs = plt.subplots(n+2, 1, figsize=(15, (n+1)*5))
+        for i in range(n):
+            axs[i].plot([outputs_list[j][i] for j in range(len(outputs_list))], label='Outputs')
+            axs[i].plot([targets_list[j][i] for j in range(len(targets_list))], label='Targets')
+            axs[i].plot([scores_list[j][i] for j in range(len(scores_list))], label='Scores')
+            axs[i].legend()
+            axs[i].set_title(cfg.data.next_value_cols[i])
+
+        axs[n].plot([scores_list[j][-1] for j in range(len(scores_list))], label='Total score')
+
+        axs[n+1].plot(anomalies_list, label='Anomalies')
+        axs[n+1].plot(GT_list, label='GT')
+        axs[n+1].legend()
+        axs[n+1].set_title('Anomalies and GT')
+
+        # save the figure
+        fig_file = os.path.join(cfg.testing.results_dir, cfg.testing.fig_file)
+        plt.savefig(fig_file)
+        plt.show()
+
+        # plot the ROC curve
+        fpr, tpr, _ = roc_curve(GT_list, anomalies_list)
+        plt.figure()
+        plt.plot(fpr, tpr)
+        plt.show()
+
         print(f"ROC AUC: {roc_auc_score(GT_list, anomalies_list)}")
         print(f"Precision: {precision_score(GT_list, anomalies_list)}")
         print(f"Recall: {recall_score(GT_list, anomalies_list)}")
         print(f"F1: {f1_score(GT_list, anomalies_list)}")
         print(f"Accuracy: {accuracy_score(GT_list, anomalies_list)}")
-        
+
 
 
     # End WandB run
