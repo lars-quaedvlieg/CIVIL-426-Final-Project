@@ -5,12 +5,12 @@ hydra:
 
 # Data configuration
 data:
-  test_file: "data/processed/processed_test_VG6.csv"
+  test_file: "data/processed/processed_test_VG4.csv"
   num_operating_modes: 5
-  input_feature_cols: [ 'tot_activepower', 'ext_tmp', 'plant_tmp', 'injector_01_opening', 'tot_current', 'water_primary_pump_01_opening', 'water_primary_pump_02_opening', 'air_circ_cold_01_tmp', 'air_circ_hot_01_tmp', 'neutral_current', 'stat_coil_ph01_06_tmp', 'tot_reactivepower', 'air_gap_negative_x_position' ]
+  input_feature_cols: [ 'tot_activepower', 'plant_tmp', 'ext_tmp', 'water_primary_cold_tmp', 'refri_bath_level', 'aspi_bath_level', 'coupler_position', 'tot_reactivepower', 'injector12_pressure', 'injector34_pressure', 'injector_01_opening', 'turbine_rotspeed', 'air_circ_hot_tmp', 'air_circ_cold_01_tmp', 'water_circ_hot_02_tmp' ]
   # These are the y_cur columns
-  current_value_cols: [ "exc_current", "exc_voltage", "elec_freq", "water_circ_flow", "water_circ_hot_tmp", "water_circ_cold_tmp" ] # These are the y_next columns
-  next_value_cols: [ "exc_current", "exc_voltage", "elec_freq", "water_circ_flow", "water_circ_hot_tmp", "water_circ_cold_tmp" ]
+  current_value_cols: [ "exc_freq", "exc_current", "exc_voltage", "elec_freq", "air_circ_hot_tmp", "water_circ_cold_tmp" ]  # These are the y_next columns
+  next_value_cols: [ "exc_freq", "exc_current", "exc_voltage", "elec_freq", "air_circ_hot_tmp", "water_circ_cold_tmp" ]
   padding_value: 0.0
   load_GT: false
 
@@ -27,17 +27,17 @@ model:
 # Training configuration
 testing:
   batch_size: 64
-  model_path: "checkpoints_VG6/causal-ckpt-31900.pth"
+  model_path: "checkpoints_VG4/causal-ckpt-31900.pth"
   threshold: 0.5
   window_size: 10
   nb_consecutive_anomalies: 5
   buffer_size: 100
-  results_dir: "results_VG6"
-  results_file: "results_VG6.csv"
-  fig_file: "results_VG6.png"
+  results_dir: "results_VG4"
+  results_file: "results_VG4.csv"
+  fig_file: "results_VG4.png"
 
 # Logging configuration
 logging:
   use_wandb: false
   project_name: "alpiq_data_challenge"
-  run_name: "train_causal_model_VG6"
+  run_name: "train_causal_model_VG4"
