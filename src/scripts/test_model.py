@@ -15,7 +15,7 @@ from alpiq.model.causal_model import CausalModel
 from alpiq.evaluation.anomaly_detection import compute_score, windowed_threshold_batch
 
 
-@hydra.main(config_path="configs", config_name="test_model_VG5_anom")
+@hydra.main(config_path="configs", config_name="test_model_VG5_anom_01a")
 def main(cfg: DictConfig):
     print(OmegaConf.to_yaml(cfg))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

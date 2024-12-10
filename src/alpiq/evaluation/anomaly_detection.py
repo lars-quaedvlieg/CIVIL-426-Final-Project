@@ -26,7 +26,7 @@ def compute_score(pred_data, data, weights=None):
 
     # Define default weights if none are provided (equal weights)
     if weights is None:
-        weights = torch.ones(num_sensors, device=pred_data.device) / num_sensors
+        weights = torch.ones(num_sensors) / num_sensors
 
     # Ensure weights have the correct shape
     assert weights.size(0) == num_sensors, "weights size must match the number of sensors."
