@@ -15,7 +15,7 @@ from alpiq.model.causal_model import CausalModel
 from alpiq.evaluation.anomaly_detection import compute_score, windowed_threshold_batch
 
 
-@hydra.main(config_path="configs", config_name="test_model_VG5_anom")
+@hydra.main(config_path="configs", config_name="test_model_VG5_anom_01a")
 def main(cfg: DictConfig):
     print(OmegaConf.to_yaml(cfg))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -28,10 +28,12 @@ def main(cfg: DictConfig):
             config=OmegaConf.to_container(cfg, resolve=True)
         )
 
+    nb_pred = 10
+
     # Load datasets and create data loaders
     test_dataset = SequenceDataset(
         data_path=Path(cfg.data.test_file),
-        context_length=cfg.model.context_length,
+        context_length=cfg.model.context_length + nb_pred,
         input_feature_col_names=cfg.data.input_feature_cols,
         current_value_col_names=cfg.data.current_value_cols,
         next_value_col_names=cfg.data.next_value_cols,
@@ -73,15 +75,23 @@ def main(cfg: DictConfig):
         for batch in tqdm(test_loader):
             if cfg.data.load_GT:
                 GT_X = batch["ground_truth"]
-            op_x = batch["operating_mode"].to(device)
-            input_signals = batch["input_sequence"].to(device)
+            op_x_batch = batch["operating_mode"].to(device)
+            input_signals_batch = batch["input_sequence"].to(device)
             cur_control_values = batch["current_values"].to(device)
             targets = batch["next_values"].to(device)
 
-            # Forward pass
-            outputs = model(op_x, input_signals, cur_control_values)
+            outputs_temp = []
+            for i in range(nb_pred):
+                op_x = op_x_batch[:,i:i+cfg.model.context_length]
+                input_signals = input_signals_batch[:,i:i+cfg.model.context_length]
 
-            outputs_list.extend(outputs.cpu().numpy())
+                outputs = model(op_x, input_signals, cur_control_values)
+                outputs_temp.extend(outputs.cpu().numpy())
+                cur_control_values = outputs
+
+            for i in range(nb_pred):
+                outputs_list.extend(outputs_temp[i::64].cpu().numpy())
+
             targets_list.extend(targets.cpu().numpy())
             if cfg.data.load_GT:
                 GT_list.extend(GT_X.cpu().numpy())
