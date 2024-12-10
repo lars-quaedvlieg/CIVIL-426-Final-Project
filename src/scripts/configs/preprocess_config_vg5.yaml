@@ -9,17 +9,25 @@ data:
   unit: "VG5"                # Hydropower unit identifier
   load_training: true        # Load training data
   load_synthetic: true      # Load synthetic data if needed
-  split_train_eval: false     # Whether to split train data into train/eval sets
+  split_train_eval: true     # Whether to split train data into train/eval sets
   train_eval_split_ratio: 0.8  # Ratio for train/eval split
   resample_interval: "30s"    # Resample interval, e.g., "1T" for one minute
+  load_anomaly: false
+
+  scaler_path: null
 
   # Column selection and normalization settings
-  continuous_columns: ['tot_activepower', 'ext_tmp', 'plant_tmp', 'charge', 'coupler_position', 'injector_01_opening', 'injector_02_opening', 'injector_03_opening', 'injector_04_opening', 'injector_05_opening', 'pump_calculated_flow', 'pump_pressure_diff', 'pump_rotspeed', 'tot_current', 'tot_effectivepower', 'tot_reactivepower', 'turbine_pressure', 'turbine_rotspeed', 'water_primary_pump_01_opening', 'water_primary_pump_02_opening', 'air_circ_cold_01_tmp', 'air_circ_cold_02_tmp', 'air_circ_cold_03_tmp', 'air_circ_cold_04_tmp', 'air_circ_cold_05_tmp', 'air_circ_cold_06_tmp', 'air_circ_hot_01_tmp', 'air_circ_hot_02_tmp', 'air_circ_hot_03_tmp', 'air_circ_hot_04_tmp', 'air_circ_hot_05_tmp', 'air_circ_hot_06_tmp', 'elec_freq', 'exc_current', 'exc_voltage', 'mid_voltage', 'neutral_current', 'ph01_current', 'ph01_voltage', 'ph12_voltage', 'ph02_current', 'ph02_voltage', 'ph23_voltage', 'ph03_current', 'ph03_voltage', 'ph31_voltage', 'stat_coil_ph01_01_tmp', 'stat_coil_ph01_02_tmp', 'stat_coil_ph01_03_tmp', 'stat_coil_ph01_04_tmp', 'stat_coil_ph01_05_tmp', 'stat_coil_ph01_06_tmp', 'stat_coil_ph02_01_tmp', 'stat_coil_ph02_02_tmp', 'stat_coil_ph02_03_tmp', 'stat_coil_ph02_04_tmp', 'stat_coil_ph02_05_tmp', 'stat_coil_ph02_06_tmp', 'stat_coil_ph03_01_tmp', 'stat_coil_ph03_02_tmp', 'stat_coil_ph03_03_tmp', 'stat_coil_ph03_04_tmp', 'stat_coil_ph03_05_tmp', 'stat_coil_ph03_06_tmp', 'stat_magn_01_tmp', 'stat_magn_02_tmp', 'stat_magn_03_tmp', 'stat_magn_04_tmp', 'stat_magn_05_tmp', 'stat_magn_06_tmp', 'stat_magn_07_tmp', 'stat_magn_08_tmp', 'stat_magn_09_tmp', 'stat_magn_10_tmp', 'stat_magn_11_tmp', 'stat_magn_12_tmp', 'water_circ_cold_tmp', 'water_circ_flow', 'water_circ_hot_01_tmp', 'water_circ_hot_02_tmp', 'water_circ_hot_03_tmp', 'water_circ_hot_04_tmp', 'water_circ_hot_05_tmp', 'water_circ_hot_06_tmp', 'water_circ_hot_tmp', 'air_gap_negative_x_position', 'air_gap_positive_x_position', 'air_gap_negative_y_position', 'air_gap_positive_y_position']
+  continuous_columns: [ 'tot_activepower', 'ext_tmp', 'plant_tmp', 'charge', 'coupler_position', 'injector_01_opening', 'injector_02_opening', 'injector_03_opening', 'injector_04_opening', 'injector_05_opening', 'pump_calculated_flow', 'pump_pressure_diff', 'pump_rotspeed', 'tot_current', 'tot_effectivepower', 'tot_reactivepower', 'turbine_pressure', 'turbine_rotspeed', 'water_primary_pump_01_opening', 'water_primary_pump_02_opening', 'air_circ_cold_01_tmp', 'air_circ_cold_02_tmp', 'air_circ_cold_03_tmp', 'air_circ_cold_04_tmp', 'air_circ_cold_05_tmp', 'air_circ_cold_06_tmp', 'air_circ_hot_01_tmp', 'air_circ_hot_02_tmp', 'air_circ_hot_03_tmp', 'air_circ_hot_04_tmp', 'air_circ_hot_05_tmp', 'air_circ_hot_06_tmp', 'elec_freq', 'exc_current', 'exc_voltage', 'mid_voltage', 'neutral_current', 'ph01_current', 'ph01_voltage', 'ph12_voltage', 'ph02_current', 'ph02_voltage', 'ph23_voltage', 'ph03_current', 'ph03_voltage', 'ph31_voltage', 'stat_coil_ph01_01_tmp', 'stat_coil_ph01_02_tmp', 'stat_coil_ph01_03_tmp', 'stat_coil_ph01_04_tmp', 'stat_coil_ph01_05_tmp', 'stat_coil_ph01_06_tmp', 'stat_coil_ph02_01_tmp', 'stat_coil_ph02_02_tmp', 'stat_coil_ph02_03_tmp', 'stat_coil_ph02_04_tmp', 'stat_coil_ph02_05_tmp', 'stat_coil_ph02_06_tmp', 'stat_coil_ph03_01_tmp', 'stat_coil_ph03_02_tmp', 'stat_coil_ph03_03_tmp', 'stat_coil_ph03_04_tmp', 'stat_coil_ph03_05_tmp', 'stat_coil_ph03_06_tmp', 'stat_magn_01_tmp', 'stat_magn_02_tmp', 'stat_magn_03_tmp', 'stat_magn_04_tmp', 'stat_magn_05_tmp', 'stat_magn_06_tmp', 'stat_magn_07_tmp', 'stat_magn_08_tmp', 'stat_magn_09_tmp', 'stat_magn_10_tmp', 'stat_magn_11_tmp', 'stat_magn_12_tmp', 'water_circ_cold_tmp', 'water_circ_flow', 'water_circ_hot_01_tmp', 'water_circ_hot_02_tmp', 'water_circ_hot_03_tmp', 'water_circ_hot_04_tmp', 'water_circ_hot_05_tmp', 'water_circ_hot_06_tmp', 'water_circ_hot_tmp', 'air_gap_negative_x_position', 'air_gap_positive_x_position', 'air_gap_negative_y_position', 'air_gap_positive_y_position' ]
 
   # Feature and predictor columns
   operating_mode_cols: [ "dyn_only_on", "equilibrium_turbine_mode", "equilibrium_pump_mode", "equilibrium_short_circuit_mode" ]
-  input_feature_cols: [ 'tot_activepower', 'ext_tmp', 'plant_tmp', 'injector_01_opening', 'tot_current', 'tot_reactivepower', 'turbine_pressure', 'water_primary_pump_01_opening', 'water_primary_pump_02_opening', 'air_circ_cold_01_tmp', 'air_circ_hot_01_tmp', 'neutral_current', 'air_gap_negative_x_position' ]
-  control_value_cols: [ "exc_current", "exc_voltage", "elec_freq", "water_circ_flow", "water_circ_hot_tmp", "water_circ_cold_tmp" ]
+  input_feature_cols: [ 'turbine_pressure', 'turbine_rotspeed', 'injector_opening', 'charge', 'coupler_position', 'water_primary_pump_01_opening', 'water_primary_pump_02_opening' ]
+  control_value_cols: [
+    "air_gap_positive_x_position", "water_circ_flow", "tot_current", "neutral_current",
+    "tot_reactivepower", "stat_magn_03_tmp", "air_circ_hot_05_tmp", "stat_coil_ph01_06_tmp",
+    "air_circ_cold_05_tmp", "water_circ_hot_03_tmp", "plant_tmp", "ext_tmp",
+    "tot_activepower", "stat_coil_ph01_04_tmp"
+  ]
 
   # Output paths
   output_dir: "data/processed"

@@ -1,4 +1,5 @@
 import os
+import pickle
 from pathlib import Path
 import hydra
 import torch
@@ -90,7 +91,7 @@ def main(cfg: DictConfig):
                 cur_control_values = outputs
 
             for i in range(nb_pred):
-                outputs_list.extend(outputs_temp[i::64].cpu().numpy())
+                outputs_list.extend(outputs_temp[i::64])
 
             targets_list.extend(targets.cpu().numpy())
             if cfg.data.load_GT:
@@ -101,17 +102,13 @@ def main(cfg: DictConfig):
     if not os.path.exists(cfg.testing.results_dir):
         os.makedirs(cfg.testing.results_dir)
 
-    # Save the outputs, scores, targets, anomalies, and GT to a file
+    # Save the outputs, targets, and GT as a tuple in a pickle file
     results_file = os.path.join(cfg.testing.results_dir, cfg.testing.results_file)
-    with open(results_file, 'w') as f:
+    with open(results_file, 'wb') as f:
         if cfg.data.load_GT:
-            f.write("Outputs, Targets, GT\n")
-            for i in range(len(outputs_list)):
-                f.write(f"{outputs_list[i]}, {targets_list[i]}, {GT_list[i]}\n")
+            pickle.dump((outputs_list, targets_list, GT_list), f)
         else:
-            f.write("Outputs, Targets\n")
-            for i in range(len(outputs_list)):
-                f.write(f"{outputs_list[i]}, {targets_list[i]}\n")
+            pickle.dump((outputs_list, targets_list, None), f)
 
     # End WandB run
     if cfg.logging.use_wandb:

@@ -13,7 +13,7 @@ from alpiq.model.causal_model import CausalModel
 from alpiq.training.trainer import Trainer
 
 
-@hydra.main(config_path="configs", config_name="train_model_VG4")
+@hydra.main(config_path="configs", config_name="train_model_VG6")
 def main(cfg: DictConfig):
     print(OmegaConf.to_yaml(cfg))
 

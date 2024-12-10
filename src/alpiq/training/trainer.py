@@ -17,8 +17,8 @@ class Trainer:
             train_loader: DataLoader,
             eval_loader: Optional[DataLoader] = None,
             device: torch.device = torch.device("cuda" if torch.cuda.is_available() else "cpu"),
-            eval_freq_steps: int = 1000,
-            save_freq_steps: int = 1000,
+            eval_freq_steps: int = 100,
+            save_freq_steps: int = 100,
             batch_loss_log_freq: int = 10,
     ):
         """
@@ -44,6 +44,8 @@ class Trainer:
         self.eval_freq_steps = eval_freq_steps
         self.save_freq_steps = save_freq_steps
         self.batch_loss_log_freq = batch_loss_log_freq
+        assert self.eval_freq_steps % self.batch_loss_log_freq == 0
+
         self.global_step = 0
 
     def train(self, num_steps: int, checkpoint_folder_path: Optional[str] = None):
@@ -54,6 +56,7 @@ class Trainer:
             num_steps (int): Number of gradient steps for training.
             checkpoint_folder_path (Optional[str]): Path to save model checkpoints folder.
         """
+
         best_loss = float("inf")
         train_iterator = iter(self.train_loader)
         pbar = tqdm(total=num_steps, desc="Training Progress")
@@ -81,16 +84,20 @@ class Trainer:
             self.optimizer.step()
 
             # Log batch loss to WandB every `batch_loss_log_freq` steps
+            log_dict = {}
             if wandb.run is not None and self.global_step % self.batch_loss_log_freq == 0:
-                wandb.log({"batch_loss": loss.item(), "step": self.global_step})
+                log_dict = log_dict | {"batch_loss": loss.item(), "step": self.global_step}
 
             # Evaluate model every `eval_freq_steps` steps
             if self.eval_loader is not None and self.global_step % self.eval_freq_steps == 0:
                 eval_loss = self._evaluate()
                 self.model.train()
                 if wandb.run is not None:
-                    wandb.log({"eval_loss": eval_loss, "step": self.global_step})
+                    log_dict = log_dict | {"eval_loss": eval_loss, "step": self.global_step}
                 print(f"Step [{self.global_step}], Eval Loss: {eval_loss:.4f}")
+
+            if wandb.run is not None and self.global_step % self.batch_loss_log_freq == 0:
+                wandb.log(log_dict)
 
             # Save checkpoint every `save_freq_steps` steps or if it’s the best eval loss
             cur_loss = loss.item() if self.eval_loader is None else eval_loss
@@ -119,7 +126,7 @@ class Trainer:
         self.model.eval()
         running_loss = 0.0
         with torch.no_grad():
-            for batch in self.eval_loader:
+            for batch in tqdm(self.eval_loader, desc="Evaluating"):
                 op_x = batch["operating_mode"].to(self.device)
                 input_signals = batch["input_sequence"].to(self.device)
                 cur_control_values = batch["current_values"].to(self.device)

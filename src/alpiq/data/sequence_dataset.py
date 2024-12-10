@@ -44,10 +44,20 @@ class SequenceDataset(Dataset):
         self.padding_value = padding_value
         self.load_GT = load_GT
 
+        # Extract data once for efficient access
+        self.input_sequences = self.data.loc[:, ("X", input_feature_col_names)].values
+        self.operating_modes = self.data.loc[:, ("X", "operating_mode")].values
+        self.current_values = self.data.loc[:, ("y_cur", current_value_col_names)].values
+        self.next_values = self.data.loc[:, ("y_next", next_value_col_names)].values
+        self.ground_truth = (
+            self.data.loc[:, ("X", "ground_truth")].values if load_GT else None
+        )
+
         # Calculate valid indices where the operating mode is not zero
-        # Assumes "operating_mode" is one of the input features under "X"
-        self.valid_indices = (np.where(self.data.loc[self.context_length:, ("X", "operating_mode")] != 0)[0]
-                              + self.context_length)
+        self.valid_indices = (
+                np.where(self.operating_modes[self.context_length:] != 0)[0]
+                + self.context_length
+        )
 
     def __len__(self):
         """
@@ -76,13 +86,14 @@ class SequenceDataset(Dataset):
         end_idx = valid_idx
         start_idx = max(0, end_idx - self.context_length)
 
-        # Extract data within the context window for input features and control values
-        input_sequence = self.data.loc[1+start_idx:end_idx, ("X", self.input_feature_cols)].values
-        operating_modes = self.data.loc[1+start_idx:end_idx, ("X", "operating_mode")].values
-        current_values = self.data.loc[end_idx, ("y_cur", self.current_value_cols)].values
-        next_values = self.data.loc[end_idx, ("y_next", self.next_value_cols)].values
+        # Slice the pre-extracted arrays
+        input_sequence = self.input_sequences[start_idx:end_idx]
+        operating_modes = self.operating_modes[start_idx:end_idx]
+        current_values = self.current_values[end_idx]
+        next_values = self.next_values[end_idx]
+
         if self.load_GT:
-            ground_truth = self.data.loc[end_idx, ("X", "ground_truth")]
+            ground_truth = self.ground_truth[end_idx]
 
         # Apply padding if the sequence is shorter than the context length
         padding_length = self.context_length - len(input_sequence)
@@ -105,7 +116,8 @@ class SequenceDataset(Dataset):
         output = {
             "operating_mode": operating_modes,
             "input_sequence": input_sequence,
-            "current_values": current_values,
+            "current_values": torch.zeros_like(current_values),
+            # After patch to make the model independent of the previous value
             "next_values": next_values,
         }
 

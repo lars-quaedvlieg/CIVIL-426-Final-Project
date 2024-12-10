@@ -9,9 +9,12 @@ data:
   unit: "VG4"                # Hydropower unit identifier
   load_training: true        # Load training data
   load_synthetic: false      # Load synthetic data if needed
-  split_train_eval: false     # Whether to split train data into train/eval sets
+  split_train_eval: true     # Whether to split train data into train/eval sets
   train_eval_split_ratio: 0.8  # Ratio for train/eval split
   resample_interval: "30s"    # Resample interval, e.g., "1T" for one minute
+  load_anomaly: false
+
+  scaler_path: null
 
   # Column selection and normalization settings
   continuous_columns: [ "tot_activepower", "plant_tmp", "ext_tmp", "water_primary_cold_tmp", "water_primary_hot_tmp",
@@ -29,8 +32,13 @@ data:
 
   # Feature and predictor columns
   operating_mode_cols: [ "dyn_only_on", "equilibrium_turbine_mode", "equilibrium_pump_mode", "equilibrium_short_circuit_mode" ]
-  input_feature_cols: [ 'tot_activepower', 'plant_tmp', 'ext_tmp', 'water_primary_cold_tmp', 'refri_bath_level', 'aspi_bath_level', 'coupler_position', 'tot_reactivepower', 'injector12_pressure', 'injector34_pressure', 'injector_01_opening', 'turbine_rotspeed', 'air_circ_hot_tmp', 'air_circ_cold_01_tmp', 'water_circ_hot_02_tmp' ]
-  control_value_cols: [ "exc_freq", "exc_current", "exc_voltage", "elec_freq", "air_circ_hot_tmp", "water_circ_cold_tmp" ]
+  input_feature_cols: [ 'injector_opening', 'injector12_pressure', 'pump_rotspeed', 'turbine_rotspeed', 'coupler_position', 'injector34_pressure' ]
+  control_value_cols: [
+    "ph23_voltage", "ph01_current", "tot_reactivepower", "air_circ_cold_01_tmp",
+    "stat_coil_ph01_02_tmp", "plant_tmp", "water_circ_cold_tmp", "water_primary_hot_tmp",
+    "water_circ_hot_02_tmp", "water_primary_filter_in_pressure", "canal_level",
+    "tot_activepower", "refri_bath_level", "ext_tmp"
+  ]
 
   # Output paths
   output_dir: "data/processed"
