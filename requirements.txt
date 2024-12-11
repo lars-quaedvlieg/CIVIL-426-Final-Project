@@ -1,1 +1,12 @@
 s5-pytorch
+hydra-core
+pandas
+numpy
+torch
+scikit-learn
+wandb
+tqdm
+matplotlib
+seaborn
+pyarrow
+prettytable 
