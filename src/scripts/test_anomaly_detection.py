@@ -120,25 +120,26 @@ def main(cfg: DictConfig):
     # so in each plot you will the output and the target and the score for each of the cols,
     # in the n+1 plot you will see the total score
     # and in the last plot you will see the anomalies and the GT
-    t_plot = 100000
+    t_plot = 80000
+    t_min = 60000
     t_max = min(t_plot, len(outputs_list))
     n = len(cfg.data.next_value_cols)
     fig, axs = plt.subplots(n+2, 1, figsize=(15, (n+1)*5))
     for i in range(n):
-        axs[i].plot([outputs_list[j][i] for j in range(t_max)], label='Outputs')
-        axs[i].plot([targets_list[j][i] for j in range(t_max)], label='Targets')
-        axs[i].plot([scores_list[j][i] for j in range(t_max)], label='Scores')
+        axs[i].plot([outputs_list[j][i] for j in range(t_min, t_max)], label='Outputs')
+        axs[i].plot([targets_list[j][i] for j in range(t_min, t_max)], label='Targets')
+        axs[i].plot([scores_list[j][i] for j in range(t_min, t_max)], label='Scores')
         axs[i].axhline(y=thresholds[i], color='r', linestyle='--', label='Threshold')
         axs[i].legend()
         axs[i].set_title(cfg.data.next_value_cols[i])
 
-    axs[n].plot([scores_list[j][-1] for j in range(t_max)], label='Total score')
+    axs[n].plot([scores_list[j][-1] for j in range(t_min, t_max)], label='Total score')
     axs[n].axhline(y=thresholds[-1], color='r', linestyle='--', label='Threshold')
     axs[n].set_title('Total score')
 
-    axs[n+1].plot(anomalies_list[:t_max], label='Anomalies')
+    axs[n+1].plot(anomalies_list[t_min:t_max], label='Anomalies')
     if cfg.data.load_GT:
-        axs[n+1].plot(GT_list[:t_max], label='GT')
+        axs[n+1].plot(GT_list[t_min:t_max], label='GT')
     #axs[n+1].plot(ope_mod_list[:t_max], label='Operating Mode')
     axs[n+1].legend()
     axs[n+1].set_title('Anomalies and GT')
@@ -155,9 +156,9 @@ def main(cfg: DictConfig):
 
     for i in range(n):
         plt.figure(figsize=(15, 5))
-        plt.plot([outputs_list[j][i] for j in range(t_max)], label='Outputs')
-        plt.plot([targets_list[j][i] for j in range(t_max)], label='Targets')
-        plt.plot([scores_list[j][i] for j in range(t_max)], label='Scores')
+        plt.plot([outputs_list[j][i] for j in range(t_min, t_max)], label='Outputs')
+        plt.plot([targets_list[j][i] for j in range(t_min, t_max)], label='Targets')
+        plt.plot([scores_list[j][i] for j in range(t_min, t_max)], label='Scores')
         plt.axhline(y=thresholds[i], color='r', linestyle='--', label='Threshold')
         plt.legend()
         plt.xlabel('Timesteps')
@@ -171,7 +172,7 @@ def main(cfg: DictConfig):
         plt.show()
 
     plt.figure(figsize=(15, 5))
-    plt.plot([scores_list[j][-1] for j in range(t_max)], label='Total score')
+    plt.plot([scores_list[j][-1] for j in range(t_min, t_max)], label='Total score')
     plt.axhline(y=thresholds[-1], color='r', linestyle='--', label='Threshold')
     plt.legend()
     plt.xlabel('Timesteps')
@@ -185,10 +186,9 @@ def main(cfg: DictConfig):
     plt.show()
 
     plt.figure(figsize=(15, 5))
-    plt.plot(anomalies_list[:t_max], label='Anomalies')
+    plt.plot(anomalies_list[t_min:t_max], label='Anomalies')
     if cfg.data.load_GT:
-        plt.plot(GT_list[:t_max], label='GT')
-    # axs[n+1].plot(ope_mod_list[:t_max], label='Operating Mode')
+        plt.plot(GT_list[t_min:t_max], label='GT')
     plt.legend()
     plt.title('Anomalies and GT')
     plt.xlabel('Timesteps')
