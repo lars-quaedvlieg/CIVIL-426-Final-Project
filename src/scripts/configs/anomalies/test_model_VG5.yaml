@@ -39,9 +39,9 @@ model:
 testing:
   batch_size: 64
   model_path: "checkpoints_VG5/causal-ckpt-31900.pth"
-  threshold: 0.5
-  window_size: 10
-  nb_consecutive_anomalies: 5
+  threshold: 5
+  window_size: 60
+  nb_consecutive_anomalies: 10
   buffer_size: 100
   results_dir: "results_VG5"
   results_file: "data_processed_VG5.csv"
