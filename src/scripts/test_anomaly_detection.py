@@ -7,6 +7,7 @@ from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import numpy as np
+import pickle
 
 from sklearn.metrics import roc_auc_score, precision_score, recall_score, f1_score, accuracy_score, roc_curve
 import matplotlib.pyplot as plt
@@ -41,36 +42,16 @@ def main(cfg: DictConfig):
         )
 
     # Load model outputs from the csv file
-    csv_file = os.path.join(cfg.testing.results_dir, cfg.testing.results_file)
+    results_file = os.path.join(cfg.testing.results_dir, cfg.testing.results_file)
 
-    count = 0
-    last_line = None
+    # Load the data from the pickle file
+    with open(results_file, 'rb') as f:
+        outputs_list, targets_list, GT_list = pickle.load(f)
 
-    with open(csv_file, 'r') as f:
-        lines = f.readlines()
-        outputs_list = []
-        targets_list = []
-        if cfg.data.load_GT:
-            GT_list = []
-
-        for line in lines[1:]:
-            if line.count(",") != 2 and last_line is None:
-                count += 1
-                last_line = line
-                continue
-            elif last_line is not None:
-                line = last_line[:-1] + line
-                if line.count(",") != 2:
-                    count += 1
-                    last_line = line
-                    continue
-                last_line = None
-
-            values = line.split(",")
-            outputs_list.append([float(x) for x in values[0].strip(' []').split()])
-            targets_list.append([float(x) for x in values[1].strip(' []').split()])
-            if cfg.data.load_GT:
-                GT_list.append(float(values[2]))
+    # Example usage of the loaded data
+    print(f"Loaded {len(outputs_list)} outputs and {len(targets_list)} targets.")
+    if GT_list is not None:
+        print(f"Loaded {len(GT_list)} ground truth values.")
 
     outputs_list = np.array(outputs_list)
     targets_list = np.array(targets_list)
@@ -78,8 +59,21 @@ def main(cfg: DictConfig):
         GT_list = np.array(GT_list)
 
     # Create a simple data loader to iterate over outputs_list, targets_list and GT_list
-    test_dataset = SimpleDataset(outputs_list, targets_list)
-    test_loader = DataLoader(test_dataset, batch_size=cfg.testing.batch_size, shuffle=False)
+    prerun_dataset = SimpleDataset(outputs_list, targets_list)
+
+    # Load datasets and create data loaders
+#    test_dataset = SequenceDataset(
+ #       data_path=Path(cfg.data.test_file),
+  #      context_length=cfg.model.context_length,
+   #     input_feature_col_names=cfg.data.input_feature_cols,
+    #    current_value_col_names=cfg.data.current_value_cols,
+     #   next_value_col_names=cfg.data.next_value_cols,
+      #  padding_value=cfg.data.padding_value,
+       # load_GT=cfg.data.load_GT
+    #)
+
+    prerun_loader = DataLoader(prerun_dataset, batch_size=cfg.testing.batch_size, shuffle=False)
+    #test_loader = DataLoader(test_dataset, batch_size=cfg.testing.batch_size, shuffle=False)
 
 
     outputs_buffer = []
@@ -90,11 +84,16 @@ def main(cfg: DictConfig):
     scores_list = []
     anomalies_list = []
 
+    ope_mod_list = []
+    #for batch in tqdm(test_loader):
+     #   ope_mod_list.extend(batch["operating_mode"].numpy())
+
+
     buffer_size = cfg.testing.buffer_size
 
-    for batch in tqdm(test_loader):
-        targets = batch["targets"]
-        outputs = batch["outputs"]
+    for batch1 in tqdm(prerun_loader):
+        targets = batch1["targets"]
+        outputs = batch1["outputs"]
 
         batch_size = outputs.size(0)
 
@@ -141,9 +140,11 @@ def main(cfg: DictConfig):
             axs[i].set_title(cfg.data.next_value_cols[i])
 
         axs[n].plot([scores_list[j][-1] for j in range(t_max)], label='Total score')
+        axs[n].set_title('Total score')
 
         axs[n+1].plot(anomalies_list[:t_max], label='Anomalies')
         axs[n+1].plot(GT_list[:t_max], label='GT')
+        #axs[n+1].plot(ope_mod_list[:t_max], label='Operating Mode')
         axs[n+1].legend()
         axs[n+1].set_title('Anomalies and GT')
 
@@ -152,11 +153,46 @@ def main(cfg: DictConfig):
         plt.savefig(fig_file)
         plt.show()
 
-        # plot the ROC curve
-        fpr, tpr, _ = roc_curve(GT_list, anomalies_list)
-        plt.figure()
-        plt.plot(fpr, tpr)
+        # Find the indices where the ground truth is 1
+        GT_indices = np.where(GT_list == 1)[0]
+        # Find continuous sequences of indices
+        continuous_sequences = []
+        start = GT_indices[0]
+        for i in range(1, len(GT_indices)):
+            if GT_indices[i] != GT_indices[i-1] + 1:
+                continuous_sequences.append((max(0, start-500), min(GT_indices[i-1]+500, len(GT_list)-1)))
+                start = GT_indices[i]
+        continuous_sequences.append((start, GT_indices[-1]))
+
+        # Show the same figure but only for the indices
+        # where the ground truth is 1 continuously
+        seq2show = continuous_sequences[3]
+
+        n = len(cfg.data.next_value_cols)
+        fig, axs = plt.subplots(n+2, 1, figsize=(15, (n+1)*5))
+        for i in range(n):
+            axs[i].plot([outputs_list[j][i] for j in range(seq2show[0], seq2show[1])], label='Outputs')
+            axs[i].plot([targets_list[j][i] for j in range(seq2show[0], seq2show[1])], label='Targets')
+            axs[i].plot([scores_list[j][i] for j in range(seq2show[0], seq2show[1])], label='Scores')
+            axs[i].legend()
+            axs[i].set_title(cfg.data.next_value_cols[i])
+
+        axs[n].plot([scores_list[j][-1] for j in range(seq2show[0], seq2show[1])], label='Total score')
+        axs[n].set_title('Total score')
+
+        axs[n+1].plot(anomalies_list[seq2show[0]:seq2show[1]], label='Anomalies')
+        axs[n+1].plot(GT_list[seq2show[0]:seq2show[1]], label='GT')
+        #axs[n+1].plot(ope_mod_list[seq2show[0]:seq2show[1]], label='Operating Mode')
+        axs[n+1].legend()
+        axs[n+1].set_title('Anomalies and GT')
         plt.show()
+
+
+        # plot the ROC curve
+        #fpr, tpr, _ = roc_curve(GT_list, anomalies_list)
+        #plt.figure()
+        #plt.plot(fpr, tpr)
+        #plt.show()
 
         print(f"ROC AUC: {roc_auc_score(GT_list, anomalies_list)}")
         print(f"Precision: {precision_score(GT_list, anomalies_list)}")
