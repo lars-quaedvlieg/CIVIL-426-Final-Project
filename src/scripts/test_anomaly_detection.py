@@ -27,7 +27,7 @@ class SimpleDataset(torch.utils.data.Dataset):
         return {"outputs": self.outputs_list[idx], "targets": self.targets_list[idx]}
 
 
-@hydra.main(config_path="configs", config_name="test_model_VG6_anom_01a")
+@hydra.main(config_path="configs/anomalies", config_name="test_model_VG6_anom_01a")
 def main(cfg: DictConfig):
     print(OmegaConf.to_yaml(cfg))
 
