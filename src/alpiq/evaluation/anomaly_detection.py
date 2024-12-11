@@ -1,6 +1,5 @@
 import torch
 import numpy as np
-import matplotlib as plt
 
 def compute_score(pred_data, data, weights=None):
     """
@@ -40,14 +39,14 @@ def compute_score(pred_data, data, weights=None):
     return result
 
 
-def windowed_threshold_batch(scores_buffer, threshold, window_size, state_buffer,
+def windowed_threshold_batch(scores_buffer, thresholds, window_size, state_buffer,
                              nb_max_consecutive_anomalies, batch_size):
     """
     Computes anomaly states for each sensor and total score using windowed means.
 
     Args:
         scores_buffer (np.ndarray): Circular buffer of scores, shape (total_size, num_sensors + 1).
-        threshold (float): Threshold for anomaly detection.
+        thresholds (np.ndarray): Thresholds for anomaly detection.
         window_size (int): Size of the sliding window.
         state_buffer (list): Circular buffer of states, one for each sensor + total score.
         nb_max_consecutive_anomalies (int): Number of consecutive anomalies before transitioning to state 2.
@@ -57,13 +56,18 @@ def windowed_threshold_batch(scores_buffer, threshold, window_size, state_buffer
         list: Updated state_buffer with new states for each sensor + total score.
     """
     scores_buffer = np.array(scores_buffer)
-    total_size, num_features = np.shape(scores_buffer)  # num_features = num_sensors + 1
-    if total_size < window_size:
-        raise ValueError("Not enough data in scores_buffer to compute window.")
+    total_size, num_features = np.shape(scores_buffer)
 
     # Ensure state_buffer has the correct structure
     while len(state_buffer) < num_features:
         state_buffer.append([])
+
+    if total_size < window_size:
+        # Not enough data to compute windows
+        for feature_idx in range(num_features):
+            # Just append normal states for now
+            state_buffer[feature_idx].extend([0] * batch_size)
+        return state_buffer
 
     # Process each sensor (and the total score)
     for feature_idx in range(num_features):
@@ -74,7 +78,7 @@ def windowed_threshold_batch(scores_buffer, threshold, window_size, state_buffer
                 # Compute window mean for the current feature
                 window_mean = np.mean(scores_buffer[i - window_size + 1:i + 1, feature_idx])
 
-                if window_mean > threshold:
+                if window_mean > thresholds[feature_idx]:
                     count = 1
                     while len(state_buffer[feature_idx]) > count and state_buffer[feature_idx][-(count + 1)] != 0:
                         count += 1
@@ -93,4 +97,3 @@ def windowed_threshold_batch(scores_buffer, threshold, window_size, state_buffer
         state_buffer[feature_idx] = state_buffer[feature_idx][-total_size:]
 
     return state_buffer
-
