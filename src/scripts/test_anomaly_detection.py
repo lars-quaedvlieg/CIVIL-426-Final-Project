@@ -27,7 +27,7 @@ class SimpleDataset(torch.utils.data.Dataset):
         return {"outputs": self.outputs_list[idx], "targets": self.targets_list[idx]}
 
 
-@hydra.main(config_path="configs/anomalies", config_name="test_model_VG6_anom_01a")
+@hydra.main(config_path="configs/anomalies", config_name="test_model_VG6")
 def main(cfg: DictConfig):
     print(OmegaConf.to_yaml(cfg))
 
@@ -120,7 +120,7 @@ def main(cfg: DictConfig):
     # so in each plot you will the output and the target and the score for each of the cols,
     # in the n+1 plot you will see the total score
     # and in the last plot you will see the anomalies and the GT
-    t_plot = 25000
+    t_plot = 100000
     t_max = min(t_plot, len(outputs_list))
     n = len(cfg.data.next_value_cols)
     fig, axs = plt.subplots(n+2, 1, figsize=(15, (n+1)*5))
@@ -128,7 +128,6 @@ def main(cfg: DictConfig):
         axs[i].plot([outputs_list[j][i] for j in range(t_max)], label='Outputs')
         axs[i].plot([targets_list[j][i] for j in range(t_max)], label='Targets')
         axs[i].plot([scores_list[j][i] for j in range(t_max)], label='Scores')
-        # print the threshold
         axs[i].axhline(y=thresholds[i], color='r', linestyle='--', label='Threshold')
         axs[i].legend()
         axs[i].set_title(cfg.data.next_value_cols[i])
@@ -152,6 +151,8 @@ def main(cfg: DictConfig):
     plt.savefig(fig_file)
     plt.show()
 
+
+
     for i in range(n):
         plt.figure(figsize=(15, 5))
         plt.plot([outputs_list[j][i] for j in range(t_max)], label='Outputs')
@@ -168,6 +169,36 @@ def main(cfg: DictConfig):
         )
         plt.savefig(fig_file)
         plt.show()
+
+    plt.figure(figsize=(15, 5))
+    plt.plot([scores_list[j][-1] for j in range(t_max)], label='Total score')
+    plt.axhline(y=thresholds[-1], color='r', linestyle='--', label='Threshold')
+    plt.legend()
+    plt.xlabel('Timesteps')
+    plt.ylabel('Normalized Values')
+    plt.title('Total score')
+    fig_file = os.path.join(
+        cfg.testing.results_dir,
+        f"{cfg.testing.fig_file}_total_score.png"
+    )
+    plt.savefig(fig_file)
+    plt.show()
+
+    plt.figure(figsize=(15, 5))
+    plt.plot(anomalies_list[:t_max], label='Anomalies')
+    if cfg.data.load_GT:
+        plt.plot(GT_list[:t_max], label='GT')
+    # axs[n+1].plot(ope_mod_list[:t_max], label='Operating Mode')
+    plt.legend()
+    plt.title('Anomalies and GT')
+    plt.xlabel('Timesteps')
+    plt.ylabel('Anomaly Detection')
+    fig_file = os.path.join(
+        cfg.testing.results_dir,
+        f"{cfg.testing.fig_file}_anomalies.png"
+    )
+    plt.savefig(fig_file)
+    plt.show()
 
 
     if cfg.data.load_GT:
@@ -191,9 +222,7 @@ def main(cfg: DictConfig):
         for i in range(n):
             axs[i].plot([outputs_list[j][i] for j in range(seq2show[0], seq2show[1])], label='Outputs')
             axs[i].plot([targets_list[j][i] for j in range(seq2show[0], seq2show[1])], label='Targets')
-            # smooth the scores with sliding windows
-            scores_list_smoothed = [np.mean(scores_list[j][i:i+cfg.testing.window_size]) for j in range(seq2show[0], seq2show[1])]
-            axs[i].plot(scores_list_smoothed, label='Scores')
+            axs[i].plot([scores_list[j][i] for j in range(seq2show[0], seq2show[1])], label='Scores')
             axs[i].axhline(y=thresholds[i], color='r', linestyle='--', label='Threshold')
             axs[i].legend()
             axs[i].set_title(cfg.data.next_value_cols[i])

@@ -23,6 +23,7 @@ data:
   ]
   padding_value: 0.0
   load_GT: false
+  file_mean_std: "results_VG5/mean_std_VG5_eval.csv"
 
 # Model configuration
 model:
