@@ -7,10 +7,20 @@ hydra:
 data:
   test_file: "data/processed/processed_test_VG6.csv"
   num_operating_modes: 5
-  input_feature_cols: [ 'tot_activepower', 'ext_tmp', 'plant_tmp', 'injector_01_opening', 'tot_current', 'water_primary_pump_01_opening', 'water_primary_pump_02_opening', 'air_circ_cold_01_tmp', 'air_circ_hot_01_tmp', 'neutral_current', 'stat_coil_ph01_06_tmp', 'tot_reactivepower', 'air_gap_negative_x_position' ]
+  input_feature_cols: [ 'turbine_pressure', 'turbine_rotspeed', 'injector_opening', 'charge', 'coupler_position', 'water_primary_pump_02_opening', 'water_primary_pump_01_opening' ]
   # These are the y_cur columns
-  current_value_cols: [ "exc_current", "exc_voltage", "elec_freq", "water_circ_flow", "water_circ_hot_tmp", "water_circ_cold_tmp" ] # These are the y_next columns
-  next_value_cols: [ "exc_current", "exc_voltage", "elec_freq", "water_circ_flow", "water_circ_hot_tmp", "water_circ_cold_tmp" ]
+  current_value_cols: [
+    "air_gap_positive_x_position", "tot_current", "water_circ_flow", "neutral_current",
+    "tot_reactivepower", "stat_magn_03_tmp", "stat_coil_ph01_06_tmp", "stat_coil_ph01_04_tmp",
+    "air_circ_hot_05_tmp", "air_circ_cold_05_tmp", "water_circ_hot_03_tmp", "plant_tmp",
+    "ext_tmp", "tot_activepower"
+  ] # These are the y_next columns
+  next_value_cols: [
+    "air_gap_positive_x_position", "tot_current", "water_circ_flow", "neutral_current",
+    "tot_reactivepower", "stat_magn_03_tmp", "stat_coil_ph01_06_tmp", "stat_coil_ph01_04_tmp",
+    "air_circ_hot_05_tmp", "air_circ_cold_05_tmp", "water_circ_hot_03_tmp", "plant_tmp",
+    "ext_tmp", "tot_activepower"
+  ]
   padding_value: 0.0
   load_GT: false
 

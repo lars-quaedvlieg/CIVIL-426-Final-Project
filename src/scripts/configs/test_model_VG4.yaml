@@ -7,10 +7,20 @@ hydra:
 data:
   test_file: "data/processed/processed_test_VG4.csv"
   num_operating_modes: 5
-  input_feature_cols: [ 'tot_activepower', 'plant_tmp', 'ext_tmp', 'water_primary_cold_tmp', 'refri_bath_level', 'aspi_bath_level', 'coupler_position', 'tot_reactivepower', 'injector12_pressure', 'injector34_pressure', 'injector_01_opening', 'turbine_rotspeed', 'air_circ_hot_tmp', 'air_circ_cold_01_tmp', 'water_circ_hot_02_tmp' ]
+  input_feature_cols: [ 'injector_opening', 'injector12_pressure', 'pump_rotspeed', 'turbine_rotspeed', 'coupler_position', 'injector34_pressure' ]
   # These are the y_cur columns
-  current_value_cols: [ "exc_freq", "exc_current", "exc_voltage", "elec_freq", "air_circ_hot_tmp", "water_circ_cold_tmp" ]  # These are the y_next columns
-  next_value_cols: [ "exc_freq", "exc_current", "exc_voltage", "elec_freq", "air_circ_hot_tmp", "water_circ_cold_tmp" ]
+  current_value_cols: [
+    "ph23_voltage", "ph01_current", "tot_reactivepower", "air_circ_cold_01_tmp",
+    "stat_coil_ph01_02_tmp", "plant_tmp", "water_circ_cold_tmp", "water_primary_hot_tmp",
+    "water_circ_hot_02_tmp", "water_primary_filter_in_pressure", "canal_level",
+    "tot_activepower", "refri_bath_level", "ext_tmp"
+  ]  # These are the y_next columns
+  next_value_cols: [
+    "ph23_voltage", "ph01_current", "tot_reactivepower", "air_circ_cold_01_tmp",
+    "stat_coil_ph01_02_tmp", "plant_tmp", "water_circ_cold_tmp", "water_primary_hot_tmp",
+    "water_circ_hot_02_tmp", "water_primary_filter_in_pressure", "canal_level",
+    "tot_activepower", "refri_bath_level", "ext_tmp"
+  ]
   padding_value: 0.0
   load_GT: false
 

@@ -29,12 +29,12 @@ def main(cfg: DictConfig):
             config=OmegaConf.to_container(cfg, resolve=True)
         )
 
-    nb_pred = 10
+    nb_pred = 1
 
     # Load datasets and create data loaders
     test_dataset = SequenceDataset(
         data_path=Path(cfg.data.test_file),
-        context_length=cfg.model.context_length + nb_pred,
+        context_length=cfg.model.context_length + nb_pred - 1,
         input_feature_col_names=cfg.data.input_feature_cols,
         current_value_col_names=cfg.data.current_value_cols,
         next_value_col_names=cfg.data.next_value_cols,
@@ -91,7 +91,7 @@ def main(cfg: DictConfig):
                 cur_control_values = outputs
 
             for i in range(nb_pred):
-                outputs_list.extend(outputs_temp[i::64])
+                outputs_list.extend(cur_control_values.cpu().numpy())
 
             targets_list.extend(targets.cpu().numpy())
             if cfg.data.load_GT:
