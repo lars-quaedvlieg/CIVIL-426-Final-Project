@@ -16,7 +16,7 @@ from alpiq.model.causal_model import CausalModel
 from alpiq.evaluation.anomaly_detection import compute_score, windowed_threshold_batch
 
 
-@hydra.main(config_path="configs", config_name="test_model_VG5_anom_01a")
+@hydra.main(config_path="configs", config_name="test_model_VG5_anom_02c")
 def main(cfg: DictConfig):
     print(OmegaConf.to_yaml(cfg))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -31,6 +31,9 @@ def main(cfg: DictConfig):
 
     nb_pred = 1
 
+    model_input_col_names = cfg.data.get("model_input_col_names", cfg.data.input_feature_cols)
+    model_output_col_names = cfg.data.get("model_output_col_names", cfg.data.next_value_cols)
+
     # Load datasets and create data loaders
     test_dataset = SequenceDataset(
         data_path=Path(cfg.data.test_file),
@@ -39,6 +42,8 @@ def main(cfg: DictConfig):
         current_value_col_names=cfg.data.current_value_cols,
         next_value_col_names=cfg.data.next_value_cols,
         padding_value=cfg.data.padding_value,
+        model_input_col_names=model_input_col_names,
+        model_output_col_names=model_output_col_names,
         load_GT=cfg.data.load_GT
     )
 
@@ -47,13 +52,13 @@ def main(cfg: DictConfig):
 
     # Model, optimizer, and loss function
     model = CausalModel(
-        input_dim=len(cfg.data.input_feature_cols),
+        input_dim=len(model_input_col_names),
         num_operating_modes=cfg.data.num_operating_modes,
         sequence_length=cfg.model.context_length,
         embedding_dim=cfg.model.embedding_dim,
         state_dim=cfg.model.state_dim,
         num_s5_layers=cfg.model.num_s5_layers,
-        num_control_variates=len(cfg.data.next_value_cols),
+        num_control_variates=len(model_output_col_names),
         s5_dropout=cfg.model.s5_dropout,
         fc_hidden_dims=cfg.model.fc_hidden_dims,
         fc_dropout=cfg.model.fc_dropout

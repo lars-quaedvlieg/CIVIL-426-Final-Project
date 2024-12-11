@@ -1,0 +1,53 @@
+# Hydra settings
+hydra:
+  job:
+    chdir: false
+
+# Data configuration
+data:
+  test_file: "data/processed/processed_eval_VG4.csv"
+  num_operating_modes: 5
+  input_feature_cols: [ 'injector_opening', 'injector12_pressure', 'pump_rotspeed', 'turbine_rotspeed', 'coupler_position', 'injector34_pressure' ]
+  # These are the y_cur columns
+  current_value_cols: [
+    "ph23_voltage", "ph01_current", "tot_reactivepower", "air_circ_cold_01_tmp",
+    "stat_coil_ph01_02_tmp", "plant_tmp", "water_circ_cold_tmp", "water_primary_hot_tmp",
+    "water_circ_hot_02_tmp", "water_primary_filter_in_pressure", "canal_level",
+    "tot_activepower", "refri_bath_level", "ext_tmp"
+  ]  # These are the y_next columns
+  next_value_cols: [
+    "ph23_voltage", "ph01_current", "tot_reactivepower", "air_circ_cold_01_tmp",
+    "stat_coil_ph01_02_tmp", "plant_tmp", "water_circ_cold_tmp", "water_primary_hot_tmp",
+    "water_circ_hot_02_tmp", "water_primary_filter_in_pressure", "canal_level",
+    "tot_activepower", "refri_bath_level", "ext_tmp"
+  ]
+  padding_value: 0.0
+  load_GT: false
+
+# Model configuration
+model:
+  context_length: 60  # 300 / 2 = 150 minutes
+  embedding_dim: 32  #
+  state_dim: 128     # Increased state dimension for S5 backbone to handle richer data
+  num_s5_layers: 4   # Increased number of S5 layers for more complexity
+  s5_dropout: 0.1    # Reduced dropout for S5; too high dropout can impact sequence learning negatively
+  fc_hidden_dims: [ 128, 64, 32 ]  # Larger and deeper FC network to process richer sequences
+  fc_dropout: 0.1   # Reduced FC dropout to preserve signal for complex sequences
+
+# Training configuration
+testing:
+  batch_size: 64
+  model_path: "checkpoints_VG4/causal-ckpt-31900.pth"
+  threshold: 0.5
+  window_size: 10
+  nb_consecutive_anomalies: 5
+  buffer_size: 100
+  results_dir: "results_VG4"
+  results_file: "results_VG4.csv"
+  fig_file: "results_VG4.png"
+
+# Logging configuration
+logging:
+  use_wandb: false
+  project_name: "alpiq_data_challenge"
+  run_name: "train_causal_model_VG4"

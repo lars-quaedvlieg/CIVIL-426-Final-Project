@@ -15,6 +15,8 @@ class SequenceDataset(Dataset):
             input_feature_col_names: List[str],
             current_value_col_names: List[str],
             next_value_col_names: List[str],
+            model_input_col_names: List[str],
+            model_output_col_names: List[str],
             padding_value: float = 0.0,
             load_GT: bool = False,
     ):
@@ -41,17 +43,54 @@ class SequenceDataset(Dataset):
         self.input_feature_cols = input_feature_col_names
         self.current_value_cols = current_value_col_names
         self.next_value_cols = next_value_col_names
+        self.model_input_cols = model_input_col_names
+        self.model_output_cols = model_output_col_names
         self.padding_value = padding_value
         self.load_GT = load_GT
 
-        # Extract data once for efficient access
-        self.input_sequences = self.data.loc[:, ("X", input_feature_col_names)].values
+        # Extract input features based on model_input_col_names
+        input_data = np.zeros((len(self.data), len(self.model_input_cols)))
+        for idx, col in enumerate(self.model_input_cols):
+            if col in self.input_feature_cols:
+                input_data[:, idx] = self.data.loc[:, ("X", col)].values.flatten()
+        self.input_sequences = input_data
+
+        # Extract current values based on model_output_col_names
+        current_data = np.zeros((len(self.data), len(self.model_output_cols)))
+        for idx, col in enumerate(self.model_output_cols):
+            if col in self.current_value_cols:
+                current_data[:, idx] = self.data.loc[:, ("y_cur", col)].values.flatten()
+        self.current_values = current_data
+
+        # Extract next values based on model_output_col_names
+        next_data = np.zeros((len(self.data), len(self.model_output_cols)))
+        for idx, col in enumerate(self.model_output_cols):
+            if col in self.next_value_cols:
+                next_data[:, idx] = self.data.loc[:, ("y_next", col)].values.flatten()
+        self.next_values = next_data
+
+
+        # Load operating modes and ground truth if applicable
         self.operating_modes = self.data.loc[:, ("X", "operating_mode")].values
-        self.current_values = self.data.loc[:, ("y_cur", current_value_col_names)].values
-        self.next_values = self.data.loc[:, ("y_next", next_value_col_names)].values
         self.ground_truth = (
             self.data.loc[:, ("X", "ground_truth")].values if load_GT else None
         )
+
+        # self.context_length = context_length
+        # self.input_feature_cols = input_feature_col_names
+        # self.current_value_cols = current_value_col_names
+        # self.next_value_cols = next_value_col_names
+        # self.padding_value = padding_value
+        # self.load_GT = load_GT
+        #
+        # # Extract data once for efficient access
+        # self.input_sequences = self.data.loc[:, ("X", input_feature_col_names)].values
+        # self.operating_modes = self.data.loc[:, ("X", "operating_mode")].values
+        # self.current_values = self.data.loc[:, ("y_cur", current_value_col_names)].values
+        # self.next_values = self.data.loc[:, ("y_next", next_value_col_names)].values
+        # self.ground_truth = (
+        #     self.data.loc[:, ("X", "ground_truth")].values if load_GT else None
+        # )
 
         # Calculate valid indices where the operating mode is not zero
         self.valid_indices = (
@@ -116,7 +155,7 @@ class SequenceDataset(Dataset):
         output = {
             "operating_mode": operating_modes,
             "input_sequence": input_sequence,
-            "current_values": torch.zeros_like(current_values),
+            "current_values": current_values,
             # After patch to make the model independent of the previous value
             "next_values": next_values,
         }

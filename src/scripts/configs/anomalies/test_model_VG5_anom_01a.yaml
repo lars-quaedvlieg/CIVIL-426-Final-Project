@@ -5,7 +5,7 @@ hydra:
 
 # Data configuration
 data:
-  test_file: "data/processed/processed_02_type_c_VG5.csv"
+  test_file: "data/processed/processed_01_type_a_VG5.csv"
   num_operating_modes: 5
   input_feature_cols: [ 'turbine_pressure', 'turbine_rotspeed', 'injector_opening', 'charge', 'coupler_position', 'water_primary_pump_01_opening', 'water_primary_pump_02_opening' ]
   # These are the y_cur columns
@@ -20,13 +20,6 @@ data:
     "tot_reactivepower", "stat_magn_03_tmp", "air_circ_hot_05_tmp", "stat_coil_ph01_06_tmp",
     "air_circ_cold_05_tmp", "water_circ_hot_03_tmp", "plant_tmp", "ext_tmp",
     "tot_activepower", "stat_coil_ph01_04_tmp"
-  ]
-  model_input_col_names: [ 'turbine_pressure', 'turbine_rotspeed', 'injector_opening', 'charge', 'coupler_position', 'water_primary_pump_02_opening', 'water_primary_pump_01_opening' ] # These are the y_next columns
-  model_output_col_names: [
-    "air_gap_positive_x_position", "tot_current", "water_circ_flow", "neutral_current",
-    "tot_reactivepower", "stat_magn_03_tmp", "stat_coil_ph01_06_tmp", "stat_coil_ph01_04_tmp",
-    "air_circ_hot_05_tmp", "air_circ_cold_05_tmp", "water_circ_hot_03_tmp", "plant_tmp",
-    "ext_tmp", "tot_activepower"
   ]
   padding_value: 0.0
   load_GT: true
@@ -44,14 +37,14 @@ model:
 # Training configuration
 testing:
   batch_size: 64
-  model_path: "checkpoints_VG6/causal-ckpt-31900.pth"
+  model_path: "checkpoints_VG5/causal-ckpt-31900.pth"
   threshold: 0.5
   window_size: 10
   nb_consecutive_anomalies: 5
   buffer_size: 100
   results_dir: "results_VG5"
-  results_file: "data_processed_02_type_c_VG5.csv"
-  fig_file: "fig_processed_02_type_c_VG5.png"
+  results_file: "data_processed_01_type_a_VG5.csv"
+  fig_file: "fig_processed_01_type_a_VG5.png"
 
 # Logging configuration
 logging:

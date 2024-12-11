@@ -29,7 +29,7 @@ class SimpleDataset(torch.utils.data.Dataset):
         return {"outputs": self.outputs_list[idx], "targets": self.targets_list[idx]}
 
 
-@hydra.main(config_path="configs", config_name="test_model_VG5_anom_01a")
+@hydra.main(config_path="configs", config_name="test_model_VG5_anom_02c")
 def main(cfg: DictConfig):
     print(OmegaConf.to_yaml(cfg))
 
@@ -135,7 +135,7 @@ def main(cfg: DictConfig):
         for i in range(n):
             axs[i].plot([outputs_list[j][i] for j in range(t_max)], label='Outputs')
             axs[i].plot([targets_list[j][i] for j in range(t_max)], label='Targets')
-            axs[i].plot([scores_list[j][i] for j in range(t_max)], label='Scores')
+            # axs[i].plot([scores_list[j][i] for j in range(t_max)], label='Scores')
             axs[i].legend()
             axs[i].set_title(cfg.data.next_value_cols[i])
 
@@ -166,14 +166,14 @@ def main(cfg: DictConfig):
 
         # Show the same figure but only for the indices
         # where the ground truth is 1 continuously
-        seq2show = continuous_sequences[3]
+        seq2show = continuous_sequences[0]
 
         n = len(cfg.data.next_value_cols)
         fig, axs = plt.subplots(n+2, 1, figsize=(15, (n+1)*5))
         for i in range(n):
             axs[i].plot([outputs_list[j][i] for j in range(seq2show[0], seq2show[1])], label='Outputs')
             axs[i].plot([targets_list[j][i] for j in range(seq2show[0], seq2show[1])], label='Targets')
-            axs[i].plot([scores_list[j][i] for j in range(seq2show[0], seq2show[1])], label='Scores')
+            # axs[i].plot([scores_list[j][i] for j in range(seq2show[0], seq2show[1])], label='Scores')
             axs[i].legend()
             axs[i].set_title(cfg.data.next_value_cols[i])
 

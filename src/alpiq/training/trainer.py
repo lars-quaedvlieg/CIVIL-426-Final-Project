@@ -71,7 +71,8 @@ class Trainer:
 
             op_x = batch["operating_mode"].to(self.device)
             input_signals = batch["input_sequence"].to(self.device)
-            cur_control_values = batch["current_values"].to(self.device)
+            cur_control_values = batch["current_values"].to(self.device) + torch.randn_like(batch["current_values"]).to(
+                self.device) * 1
             targets = batch["next_values"].to(self.device)
 
             # Forward pass

@@ -5,8 +5,8 @@ hydra:
 
 # Data configuration
 data:
-  train_file: "data/processed/new/processed_train_VG6.csv"
-  eval_file: "data/processed/new/processed_eval_VG6.csv"
+  train_file: "data/processed/processed_train_VG6.csv"
+  eval_file: "data/processed/processed_eval_VG6.csv"
   num_operating_modes: 5
   input_feature_cols: [ 'turbine_pressure', 'turbine_rotspeed', 'injector_opening', 'charge', 'coupler_position', 'water_primary_pump_02_opening', 'water_primary_pump_01_opening' ]
   # These are the y_cur columns
@@ -26,23 +26,23 @@ data:
 
 # Model configuration
 model:
-  context_length: 240  # 300 / 2 = 150 minutes
-  embedding_dim: 64  #
-  state_dim: 256     # Increased state dimension for S5 backbone to handle richer data
-  num_s5_layers: 6   # Increased number of S5 layers for more complexity
+  context_length: 60  # 300 / 2 = 150 minutes
+  embedding_dim: 32  #
+  state_dim: 128     # Increased state dimension for S5 backbone to handle richer data
+  num_s5_layers: 4   # Increased number of S5 layers for more complexity
   s5_dropout: 0.1    # Reduced dropout for S5; too high dropout can impact sequence learning negatively
-  fc_hidden_dims: [ 256, 128, 64 ]  # Larger and deeper FC network to process richer sequences
+  fc_hidden_dims: [ 128, 64, 32 ]  # Larger and deeper FC network to process richer sequences
   fc_dropout: 0.1   # Reduced FC dropout to preserve signal for complex sequences
 
 # Training configuration
 training:
   batch_size: 64
   learning_rate: 0.0005
-  num_gradient_steps: 16_000
-  checkpoint_folder: "checkpoints_VG6_bigger"
+  num_gradient_steps: 5_000
+  checkpoint_folder: "checkpoints_VG6_noise_much"
 
 # Logging configuration
 logging:
   use_wandb: true
   project_name: "alpiq_data_challenge"
-  run_name: "train_causal_model_VG6_bigger"
+  run_name: "train_causal_model_VG6_noise_much"
