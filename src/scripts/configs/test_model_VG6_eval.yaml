@@ -5,7 +5,7 @@ hydra:
 
 # Data configuration
 data:
-  test_file: "data/processed/processed_01_type_a_VG6.csv"
+  test_file: "data/processed/processed_test_VG6.csv"
   num_operating_modes: 5
   input_feature_cols: [ 'turbine_pressure', 'turbine_rotspeed', 'injector_opening', 'charge', 'coupler_position', 'water_primary_pump_02_opening', 'water_primary_pump_01_opening' ]
   # These are the y_cur columns
@@ -22,7 +22,8 @@ data:
     "ext_tmp", "tot_activepower"
   ]
   padding_value: 0.0
-  load_GT: true
+  load_GT: false
+  compute_mean_std: true
   file_mean_std: "results_VG6/mean_std_VG6_eval.csv"
 
 # Model configuration
@@ -39,13 +40,13 @@ model:
 testing:
   batch_size: 64
   model_path: "checkpoints_VG6/causal-ckpt-31900.pth"
-  threshold: 4
-  window_size: 60
-  nb_consecutive_anomalies: 10
+  threshold: 0.5
+  window_size: 10
+  nb_consecutive_anomalies: 5
   buffer_size: 100
-  results_dir: "results_VG6_01a"
-  results_file: "results_VG6_01a.csv"
-  fig_file: "results_VG6_01a"
+  results_dir: "results_VG6"
+  results_file: "results_VG6_eval.csv"
+  fig_file: "results_VG6_eval"
 
 # Logging configuration
 logging:

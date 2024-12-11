@@ -23,6 +23,8 @@ data:
   ]
   padding_value: 0.0
   load_GT: false
+  compute_mean_std: true
+  file_mean_std: "results_VG4/mean_std_VG4_eval.csv"
 
 # Model configuration
 model:
@@ -43,8 +45,8 @@ testing:
   nb_consecutive_anomalies: 5
   buffer_size: 100
   results_dir: "results_VG4"
-  results_file: "results_VG4.csv"
-  fig_file: "results_VG4"
+  results_file: "results_VG4_eval.csv"
+  fig_file: "results_VG4_eval"
 
 # Logging configuration
 logging:
